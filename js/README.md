@@ -16,6 +16,7 @@
 monitor.init({
     code: 'scscms', // 上报的code标识
     uin: '', // 用户标识
+	prevent:false, //是否禁止捕获（开发时可设为true）
     key:'monitor',//localStorage key
     url:'http://localhost:8000/api/beacon', //上报接口（beacon或report）
     ignore: [], // 忽略某些关键词错误, 支持String或Regexp

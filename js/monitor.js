@@ -5,6 +5,7 @@ const monitor = (function(W,D) {
     const F = {
         code: '', // 上报的code标识
         uin: '', // 用户
+		prevent:false, //是否禁止捕获（开发时可设为true）
         key:'monitor',//localStorage key
         url:'http://localhost:8000/api/beacon', //上报接口(默认不应该修改)
         ignore: [], // 忽略某些关键词错误, 支持String或Regexp
@@ -73,8 +74,8 @@ const monitor = (function(W,D) {
         },
         //先缓存不上报
         push(msg){
-            if(!T.isType(msg)||T.isIgnore(msg)){
-                return;//参数必须是对象,同时在抽样范围内
+            if(F.prevent||!T.isType(msg)||T.isIgnore(msg)){
+                return;//没有阻止，参数必须是对象,同时在抽样范围内
             }
             const arr = T.getStorage();
             let has = false;//判断缓存中是否有相同的错误，有就累加1，没就存入缓存
@@ -111,7 +112,7 @@ const monitor = (function(W,D) {
                     o.info = o.info.join();
                 }
             });
-            if(arr.length){
+            if(!F.prevent && arr.length){
                 //如果全量上报且上报成功，删除缓存
                 navigator.sendBeacon(F.url,JSON.stringify({code:F.code,uin:F.uin,list:arr})) && !isObj && localStorage.removeItem(F.key);
             }

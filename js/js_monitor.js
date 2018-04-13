@@ -6,6 +6,7 @@ var monitor = (function(W){
     var F = {
         code: '', // 上报的code标识
         uin: '', // 用户
+        prevent:false, //是否禁止捕获（开发时可设为true）
         key:'monitor',//localStorage key
         url:'http://localhost:8000/api/beacon', //上报接口(默认不应该修改)
         ignore: [], // 忽略某些关键词错误, 支持String或Regexp
@@ -78,7 +79,7 @@ var monitor = (function(W){
         },
         //先缓存不上报
         push:function(msg){
-            if(!T.isType(msg)||T.isIgnore(msg)){
+            if(F.prevent||!T.isType(msg)||T.isIgnore(msg)){
                 return;//参数必须是对象,同时在抽样范围内
             }
             var arr = T.getStorage();
@@ -123,7 +124,7 @@ var monitor = (function(W){
                 }
                 return v/arr.length >> 0;
             };
-            if (arr.length) {
+            if (!F.prevent && arr.length) {
                 var iframe = document.createElement("iframe");
                 iframe.style.display = "none";
                 iframe.name = "scs" + Math.random().toString(16).slice(-8);

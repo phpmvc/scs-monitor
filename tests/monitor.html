@@ -53,6 +53,7 @@
     }
     let F = monitor.init({
         code: 'test',
+        prevent:true, //是否禁止捕获（开发时可设为true）
         url:'http://localhost:8000/api/beacon'
     });
     console.log(monitor);
