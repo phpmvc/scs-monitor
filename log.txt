@@ -1,4 +1,0 @@
-﻿GET /upFile/1528872047423.jpg 1ms 
-POST /api/listReport 7ms 
-GET /upFile/1528872047423.jpg 2ms 
-POST /api/listReport 9ms 

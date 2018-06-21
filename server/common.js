@@ -1,8 +1,8 @@
 import sort_type from './sort_type'
 const sortType = {};
-for (let k in sort_type) {
+Object.keys(sort_type).forEach(k=>{
     sortType[k] = sort_type[k].name
-}
+})
 //前、后台共用变量
 export default {
     web_name:'前端监控系统',

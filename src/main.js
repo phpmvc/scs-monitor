@@ -7,7 +7,14 @@ import 'element-ui/lib/theme-chalk/index.css';
 import VueRouter from 'vue-router';
 import Vuex from 'vuex';
 
-import echarts from 'echarts'
+// 引入 ECharts 主模块
+const echarts = require('echarts/lib/echarts');
+// 按需引入可减少0.4MB
+require('echarts/lib/chart/pie');
+require('echarts/lib/chart/line');
+// 引入提示框和标题组件
+require('echarts/lib/component/tooltip');
+require('echarts/lib/component/title');
 Vue.prototype.$echarts = echarts
 
 Vue.use(Vuex);

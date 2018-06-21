@@ -17,9 +17,9 @@ const monitor = (function(W,D) {
     };
     if(!navigator.sendBeacon||!W.performance){
         return {
-            init(){return F},
-            push(){},
-            beacon(){}
+            init:function(){return F},
+            push:function(){},
+            beacon:function(){}
         }
     }
     const T = {
