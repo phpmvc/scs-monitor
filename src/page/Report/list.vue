@@ -17,7 +17,7 @@
                         range-separator=" 至 " placeholder="选择日期范围">
                     </el-date-picker>
                 </el-form-item>
-                <el-form-item>
+                <el-form-item style="text-align: right">
                     <el-button size="small" icon="search" @click='onSearch'>查询</el-button>
                 </el-form-item>
             </el-form>
@@ -41,6 +41,7 @@
                     :label="item.name"
                     :key="item.key"
                     :prop="item.key"
+                    :show-overflow-tooltip="true"
                     :formatter="columnFormatter"
                     :min-width="item.minWidth" :width="item.width">
                 </el-table-column>

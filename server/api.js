@@ -2,7 +2,7 @@
 import config from './config.js'
 import mysql from 'mysql2/promise'
 import bcrypt from 'bcryptjs'
-import fs from "fs"
+import fs from 'fs'
 import jwt from 'jsonwebtoken'
 import common from './common'
 import nodemailer from 'nodemailer'
@@ -24,9 +24,80 @@ function sendEmail(email, title, body) {
         });
     })
 }
+//项目列表
+async function project(ctx) {
+    const connection = await mysql.createConnection(config.mysqlDB);
+    const [list] = await connection.execute("SELECT * FROM `project` ORDER BY sort",[]);
+    await connection.end();
+    ctx.body = {
+        success: true,
+        data:{data:list}
+    };
+    return list;
+}
+//更新项目（保存、修改和删除）
+async function updateProject(ctx) {
+    let data = ctx.request.body;
+    let msg;
+    let id = data.id >> 0;
+    const connection = await mysql.createConnection(config.mysqlDB);
+    if(data.del && id){
+        const [result] = await connection.execute(`DELETE from project where id=?`, [id]);
+        msg = result.affectedRows > 0 ? '':'删除项目失败！';
+    }else{
+        let msg,arr = [];
+        const obj = {
+            code:'编码',
+            sort:'排序',
+            name:'项目名称',
+            domain:'域名',
+            log_odds:'日志采集机率',
+            performance_odds:'性能采集机率',
+            comment:'说明',
+        };
+        const array = Object.getOwnPropertyNames(obj);
+        array.forEach(key=>{
+            if(data[key]==='' && key !== 'comment' &&!msg){
+                msg = obj[key]+'不能为空！';
+            }
+            arr.push(data[key]);
+        });
+        if(!msg){
+            if(id){
+                array.splice(0,1);//修改时不能编码
+                arr.splice(0,1);
+                arr.push(id);
+                const [result] = await connection.execute(`UPDATE project SET ${array.map(k=>k+'=?').join(',')} where id=?`, arr);
+                msg = result.affectedRows === 1 ? '' : '修改项目失败';
+            }else{
+                const [result] = await connection.execute(`INSERT INTO project (${array.join(',')}) VALUES (${array.map((()=>'?')).join(',')})`, arr);
+                msg = result.affectedRows === 1 ? '' : '添加项目失败';
+            }
+        }
+    }
+    if(!msg){
+        const [list] = await connection.execute(`SELECT code,name,log_odds,performance_odds FROM project ORDER BY sort`, []);
+        const json = {}
+        list.forEach(obj=>{
+            json[obj.code] = {
+                name:obj.name,
+                log_odds: + obj.log_odds,
+                performance_odds: + obj.performance_odds
+            };
+        })
+        fs.writeFileSync('./server/sort_type.js','export default' + JSON.stringify(json, null, '\t'));
+    }
+    await connection.end();
+    ctx.body = {
+        success: !msg,
+        message: msg,
+        data: {}
+    }
+}
 //监控数据列表
 async function listReport(ctx) {
-    const data = ctx.request.body;
+    const data = ctx.request.body
+    const table = data.table === 'performance' ? 'performance' : 'reports'
     let pageSize = Math.abs(data.pageSize >> 0)||10;//分页率
     let page = Math.abs(data.page >> 0)||1;//当前页码
     let begin = data.begin;
@@ -41,18 +112,20 @@ async function listReport(ctx) {
         querying += ' and code = ?';
         arr.push(data.sort_id);
     }
-    if(begin>0 && end>0){
+    let reg = /^\d{4}-\d{1,2}-\d{1,2}$/
+    if(reg.test(begin) && reg.test(end)){
         if(begin === end){
-            querying += " and to_days(create_time) = to_days(?)";
+            querying += " and to_days(occurrence) = to_days(?)";
             arr.push(begin);
         }else{
-            querying += " and create_time BETWEEN ? AND ?";
+            querying += " and occurrence BETWEEN ? AND ?";
             arr.push(begin,end);
         }
     }
     querying = querying.replace('and','where');
+    console.log(`SELECT SQL_NO_CACHE COUNT(*) as total FROM ${table} ${querying}`)
     const connection = await mysql.createConnection(config.mysqlDB);
-    const [rows] = await connection.execute(`SELECT SQL_NO_CACHE COUNT(*) as total FROM reports ${querying}`, arr);
+    const [rows] = await connection.execute(`SELECT SQL_NO_CACHE COUNT(*) as total FROM ${table} ${querying}`, arr);
     const total = rows[0].total;//总数量
     const pages = Math.ceil(total/pageSize);
     if(page > pages){
@@ -60,11 +133,8 @@ async function listReport(ctx) {
     }
     querying += " ORDER BY id DESC LIMIT ?, ?";
     arr.push((page - 1) * pageSize,pageSize);
-    const [list] = await connection.execute(`SELECT * FROM reports ${querying}`, arr);
+    const [list] = await connection.execute(`SELECT * FROM ${table} ${querying}`, arr);
     await connection.end();
-    list.forEach(obj=>{
-        obj.create_time = obj.create_time.toLocaleString();
-    });
     ctx.body = {
         success: true,
         message: '',
@@ -74,49 +144,20 @@ async function listReport(ctx) {
     }
 }
 
-//保存上报信息
+//共用保存上报信息
 async function saveReport(column,value,values) {
     let row = 0;
-    if(values.length){
-        const connection = await mysql.createConnection(config.mysqlDB);
-        const [result] = await connection.execute(`INSERT INTO reports (${column.join(",")}) VALUES ${value.join(',')}`, values);
-        await connection.end();
+    const connection = await mysql.createConnection(config.mysqlDB);
+    if(values === 'performance') {
+        const [result] = await connection.execute(`INSERT INTO performance (${column.join(',')}) VALUES (${column.map(() =>'?').join(',')})`, value);
         row = result.affectedRows;
+    }else if(Array.isArray(values)){
+        const [result] = await connection.execute(`INSERT INTO reports (${column.join(",")}) VALUES ${value.join(',')}`, values);
+        row = result.affectedRows;
+        console.log('==========',row);
     }
+    await connection.end();
     return row;
-}
-//上报信息
-async function report(ctx) {
-    const data = ctx.request.body;
-    const browser = ctx.request.header['user-agent']||'';
-    const referrer = ctx.request.header.referer||'';//来源页
-    const ip = config.getClientIP(ctx);
-    const arr = ['code','uin','browser','ip','title','info','amount','url','referrer','occurrence','create_time'];
-    const _v = '(' + arr.map(() => '?').toString() + ')';
-    const value = [];
-    const values = [];
-    if(typeof data.title !== 'object'){
-        data.title = [data.title];
-        data.info = [data.info];
-        data.amount = [data.amount];
-        data.url = [data.url];
-        data.occurrence = [data.occurrence];
-    }
-    for(let i = data.title.length;i--;){
-        values.push(data.code);
-        values.push(data.uin);
-        values.push(browser);
-        values.push(ip);
-        values.push(data.title[i]);
-        values.push(data.info[i]);
-        values.push(data.amount[i] >> 0);//确定为数字
-        values.push(data.url[i]);
-        values.push(referrer);
-        values.push(data.occurrence[i]||0);//错误发生的时间戳
-        values.push(new Date().toLocaleString());
-        value.push(_v);
-    }
-    ctx.body = await saveReport(arr,value,values) > 0 ? 'ok' : 'no';
 }
 //管理员删除上报信息
 async function deleteReport(ctx){
@@ -453,7 +494,8 @@ async function delFile(ctx) {
 export default {
     listReport,
     deleteReport,
-    report,
+    project,
+    updateProject,
     saveReport,
     listUser,
     saveUpFile,

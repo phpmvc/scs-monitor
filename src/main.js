@@ -3,9 +3,12 @@ import Vue from 'vue';
 import App from './App';
 import ElementUI from 'element-ui';
 import '../static/style.css';
-import 'element-ui/lib/theme-default/index.css';
+import 'element-ui/lib/theme-chalk/index.css';
 import VueRouter from 'vue-router';
 import Vuex from 'vuex';
+
+import echarts from 'echarts'
+Vue.prototype.$echarts = echarts
 
 Vue.use(Vuex);
 import store from './store/index';//本地存储
@@ -14,7 +17,10 @@ import {storage} from 'utils';
 Vue.use(ElementUI);
 Vue.use(VueRouter);
 
-import routes from './routes.js';
+import monitor from '../js/vue_monitor';
+Vue.use(monitor);
+
+import routes from './routes';
 
 //页面顶部进度条
 import NProgress from 'nprogress';

@@ -1,6 +1,6 @@
 <template>
     <div class="home" :class="{homeClose:isCollapse}" @click="homeClick">
-        <el-dialog title="更新头像" :visible.sync="upUserPic.visible" size="tiny" @click.native.stop="">
+        <el-dialog title="更新头像" :visible.sync="upUserPic.visible" @click.native.stop="">
             <el-form :model="upUserPic" :rules="upUserPic.rules" label-width="80px" ref="picForm">
                 <el-form-item label="图片地址" prop="pic">
                     <el-input v-model="upUserPic.pic"></el-input>
@@ -32,7 +32,7 @@
                 <i class="fa fa-bars" @click="isCollapse=!isCollapse"></i>
             </div>
             <div class="el-col el-col-1" style="width:calc(100% - 440px);">
-                <el-menu theme="dark" :default-active="headerCurRouter" class="el-menu-demo" mode="horizontal" router>
+                <el-menu :default-active="headerCurRouter" class="el-menu-demo" mode="horizontal" router background-color="#054572" text-color="#ffffff" default-active="#fff" active-text-color="#ff7d2e">
                     <template v-for="item in getMenu" v-if="item.meta.show">
                         <el-submenu :key="item.path" :index="item.path" v-if="item.meta.showSub">
                             <template slot="title">{{item.meta.title}}</template>
@@ -48,7 +48,7 @@
             </div>
         </div>
         <div class="menu">
-            <el-menu :default-active="headerCurRouter" class="el-menu-vertical-demo" :collapse="isCollapse" :router="true">
+            <el-menu :default-active="headerCurRouter" class="el-menu-vertical-demo" :collapse="isCollapse" :router="true" background-color="#eef1f6">
                 <template v-for="item in getMenu" v-if="item.meta.show">
                     <el-submenu :key="item.path" :index="item.path" v-if="item.meta.showSub">
                         <template slot="title">
@@ -81,7 +81,7 @@
                 </transition>
             </div>
         </div>
-        <el-dialog title="修改密码" :visible.sync="password.visible" size="tiny">
+        <el-dialog title="修改密码" :visible.sync="password.visible">
             <el-form :model="password.form" :rules="password.rules" label-width="80px" ref="password">
                 <el-form-item label="旧密码" prop="old_password">
                     <el-input type="password" v-model="password.form.old_password"></el-input>
@@ -408,9 +408,11 @@
         width: 200px;
         min-height: 400px;
     }
-
     .home {
         color: #333;
+        .el-menu--horizontal{
+            border-bottom: none;
+        }
         .el-breadcrumb {
             height:35px;
             line-height: 35px;
@@ -422,11 +424,15 @@
             top: 60px;
             overflow-y: auto;
             height: ~'calc(100% - 60px)';
+            border-right: solid 1px #e6e6e6;
             background-color: #eef1f6;
             .el-menu-item-group__title{display: none};
 			.el-menu-item:hover, .el-submenu__title:hover{
 				color:@bgColor;
 			}
+            .el-menu{
+                 border:none
+            }
         }
         &>.el-row {
             position: fixed;
@@ -448,11 +454,6 @@
 				.el-submenu:hover .el-submenu__title{
 					background-color: darken(@bgColor,10%);
 				}
-            }
-            .el-menu--horizontal>.el-menu-item:hover,
-            .el-menu--horizontal>.el-submenu.is-active .el-submenu__title,
-            .el-menu--horizontal>.el-submenu:hover .el-submenu__title{
-                border-bottom-color: #ff7d2e;
             }
             .el-col {
                 height: 60px;

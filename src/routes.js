@@ -6,6 +6,8 @@ import ReportList from 'page/Report/list.vue'
 import UpFileList from 'page/UpFile/list.vue'
 import userList from 'page/User/list.vue'
 import userAdd from 'page/User/add.vue'
+import project from 'page/Report/project.vue'
+import performance from 'page/Report/performance.vue'
 
 export default {
     mode: 'history',
@@ -31,8 +33,17 @@ export default {
                 icon:'fa fa-file-text-o'
             },
             component: Home,
-            redirect:'/Report/list',
+            redirect:'/Report/project',
             children: [{
+                path: 'project',
+                meta:{
+                    verify:true,
+                    grade:common.page_grade.project,
+                    title: '监控项目',
+                    icon:'fa fa-newspaper-o'
+                },
+                component: project
+            },{
                 path: 'list',
                 meta:{
                     verify:true,
@@ -41,6 +52,15 @@ export default {
                     icon:'fa fa-newspaper-o'
                 },
                 component: ReportList
+            },{
+                path: 'performance',
+                meta:{
+                    verify:true,
+                    grade:common.page_grade.performance,
+                    title: '性能数据',
+                    icon:'fa fa-newspaper-o'
+                },
+                component: performance
             }]
         },{
             path: '/user',

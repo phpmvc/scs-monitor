@@ -58,6 +58,7 @@
             };
         },
         mounted(){
+            this.$monitor.init();//前端监控
             storage.remove('token');
         },
         methods: {

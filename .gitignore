@@ -5,4 +5,5 @@ npm-debug.log
 img/
 .vscode/
 .idea/
+log.txt
 package-lock.json

@@ -5,15 +5,26 @@ import api from './api'
 import common from './common'
 import koa_router from 'koa-router'
 import multer from 'koa-multer';
-import fs from "fs"
-import koabody from "koa-body";
+import fs from 'fs'
+import koabody from 'koa-body';
+import sort_type from './sort_type'
+
+//公用：上报前抽查
+function SnapCheck(code,type = 'log'){
+    const obj = sort_type[code];
+    const key = type === 'log' ? 'log_odds' : 'performance_odds'
+    return obj && obj[key] > Math.random();
+}
+
 const routes = koa_router();
 
 // userType:需要的用户权限  0:游客 1:超级管理员 2:普通管理员 3:VIP用户 4:普通用户
 const urls = {
     'listReport': {},
     'deleteReport': {}, //删除上报信息
-    'report': {userType: 0},    //上报信息
+    'performance': {userType: 0},    //上报性能信息
+    'project': {userType: common.page_grade.project},    //采集项目
+    'updateProject': {userType: common.page_grade.project},    //更新项目
     'beacon': {userType: 0},    //上报信息
     'login'   : {userType: 0},	//用户登录（游客）
     'changePassword' : {},
@@ -28,11 +39,12 @@ const urls = {
     'upUserPic': {userType: 4},//用户上传头像
 };
 
+const exclude = ['upFile','beacon','performance'] //排除接口
 Object.getOwnPropertyNames(urls).forEach(key=>{
     if(common.page_grade.hasOwnProperty(key)){
         urls[key].userType = common.page_grade[key];//覆盖访问权限
     }
-    if(key !== 'upFile' && key !== 'beacon'){
+    if(!exclude.includes(key)){
         let obj = urls[key];
         let url = '/' + key + (obj.url || '');
         routes[obj.method ? obj.method : 'post'](url, api[key]);
@@ -42,24 +54,30 @@ Object.getOwnPropertyNames(urls).forEach(key=>{
 //文件上传配置
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        if (!fs.existsSync(config.upPath)) {
-            fs.mkdirSync(config.upPath);
-        }
+        let path = '';
+        config.upPath.split('/').forEach(p=>{
+            if (p && !fs.existsSync(path += p+'/')) {
+                fs.mkdirSync(path);
+            }
+        })
         cb(null, config.upPath);
     },
     filename: function (req, file, cb) {
-        let fileFormat = (file.originalname).split(".");
-        cb(null,Date.now() + "." + fileFormat[fileFormat.length - 1]);
+        let fileFormat = (file.originalname).split('.');
+        cb(null,Date.now() + '.' + fileFormat[fileFormat.length - 1]);
     }
 });
 
 //上报信息navigator.sendBeacon
 routes.post('/beacon', koabody(), async (ctx) => {
     const json = JSON.parse(ctx.request.body);
+    if(!SnapCheck(json.code)){
+        return ctx.body = 'misAlign'
+    }
     const browser = ctx.request.header['user-agent']||'';//浏览器信息
     const referrer = ctx.request.header.referer||'';//来源页
     const ip = config.getClientIP(ctx);
-    const arr = ['code','uin','browser','ip','title','info','amount','url','referrer','occurrence','create_time'];
+    const arr = ['code','uin','browser','ip','title','info','amount','url','referrer','occurrence'];
     const _v = '(' + arr.map(() => '?').toString() + ')';
     const value = [];
     const values = [];
@@ -74,12 +92,56 @@ routes.post('/beacon', koabody(), async (ctx) => {
         values.push(d.url.substring(0,200));
         values.push(referrer.substring(0,200));
         values.push(d.occurrence);//错误发生的时间戳
-        values.push(new Date().toLocaleString());
         value.push(_v);
     });
     ctx.body = await api.saveReport(arr,value,values) > 0 ? 'ok' : 'no';
 });
 
+//上报性能信息
+routes.post('/performance', koabody(), async (ctx) => {
+    const json = JSON.parse(ctx.request.body);
+    if(!SnapCheck(json.code,'performance')){
+        return ctx.body = 'misAlign'
+    }
+    const browser = ctx.request.header['user-agent']||'';
+    const referrer = ctx.request.header.referer||'';//来源页
+    const ip = config.getClientIP(ctx);
+    const Agents = ['Android', 'iPhone', 'SymbianOS', 'Windows Phone', 'iPad', 'iPod'];
+    let os = 'pc';
+    for (let i = Agents.length; i--;) {
+        if (browser.includes(Agents[i])) {
+            os = Agents[i];
+            break;
+        }
+    }
+    //获取浏览器
+    let bt = 'other';
+    const browserArr = ['compatible; MSIE', 'rv:11', 'Edge', 'Safari', 'Firefox', 'Opera', 'Chrome', 'QQ', 'MicroMessenger']
+    for (let i = browserArr.length; i--;) {
+        if (browser.includes(browserArr[i])) {
+            bt = browserArr[i]
+            break
+        }
+    }
+    if(bt === 'MicroMessenger'){
+        bt = 'WeChat'
+    }else if(bt === 'rv:11'){
+        bt = 'IE11'
+    }else if(bt === 'compatible; MSIE'){
+        bt = 'IE'+/MSIE (\d+)/.exec(browser)[1]
+    }
+    const arr = ['code', 'uin', 'screen_width', 'screen_height', 'pixel_ratio', 'url', 'type', 'redirect_count', 'redirect', 'dns_lookup', 'tcp_connect', 'request', 'response', 'first_paint', 'dom_complete', 'dom_ready', 'dom_load', 'timing', 'entries']
+    const values = []
+    arr.forEach(k=>{
+        values.push(json[k])
+    })
+    arr.push('browser');  values.push(browser);
+    arr.push('browser_type');  values.push(bt);
+    arr.push('os');  values.push(os);
+    arr.push('referrer');  values.push(referrer);
+    arr.push('ip');  values.push(ip);
+    ctx.body = await api.saveReport(arr,values,'performance') > 0 ? 'ok' : 'no';
+})
 //上传文件
 routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {
     const {originalname,mimetype,filename,path,size} = ctx.req.file;

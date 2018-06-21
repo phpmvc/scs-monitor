@@ -18,7 +18,10 @@
                 </el-select>
             </el-form-item>
             <el-form-item label="用户头像" prop="user_pic">
-                <el-input v-model="data.user_pic"></el-input> <up-file ref="upload" :upload="{disabled:grade.upFile}" @successUpload="successUpload"></up-file> <el-button @click="upImg" :disabled="grade.upFile">上传图片</el-button>
+                <el-input v-model="data.user_pic">
+                    <template slot="append"><el-button @click="upImg" :disabled="grade.upFile">上传图片</el-button></template>
+                </el-input>
+                <up-file ref="upload" :upload="{disabled:grade.upFile}" @successUpload="successUpload"></up-file>
             </el-form-item>
             <el-form-item style="text-align: right">
                 <el-button @click="backList">返回列表</el-button>

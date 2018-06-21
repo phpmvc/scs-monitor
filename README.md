@@ -1,8 +1,8 @@
-# 前端监控系统<sup>monitor</sup>
+# 前端监控系统V3.0<sup>monitor</sup>
 
 前端监控系统
 
-    监测各系统前端异常错误，旨在及时了解和掌握各系统问题，及时修复。
+    监测各系统前端异常错误，旨在及时了解和掌握各系统问题，及时修复。附加防劫持功能。
 
 ![image](web.png)
 
@@ -17,7 +17,7 @@
 ### 安装
 
 ```
-git clone https://github.com/scscms/monitor.git
+git clone https://github.com/scscms/scs-monitor.git
 
 npm install
 ```
@@ -49,6 +49,6 @@ npm run start  #开发期，运行前后端
 
 至此前端监控后台搭建起来了，等着各系统上报数据...
 
-### 前端上报
+### 前端上报方法
 
 参见 [js/README.md](./js/README.md)

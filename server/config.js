@@ -3,15 +3,15 @@ export default {
     //数据库配置
     mysqlDB : {
 		host:'localhost',
-        user: '数据库用户',
-        password:'数据库密码',
-        database: '数据库名称'
+        user: 'root',
+        password:'root',
+        database: 'monitoring'
     },
     upPath:'dist/upFile/',//上传路径
     //token 配置
     JWTs : {
         secret : 'scscms', // 指定密钥
-        expiresIn:'2h'  //超时设置 m分钟 h小时 d天数
+        expiresIn:'1d'  //超时设置 m分钟 h小时 d天数
     },
     //邮件服务配置
     emailServer:{

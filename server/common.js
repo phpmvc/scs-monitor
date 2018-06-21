@@ -1,3 +1,8 @@
+import sort_type from './sort_type'
+const sortType = {};
+for (let k in sort_type) {
+    sortType[k] = sort_type[k].name
+}
 //前、后台共用变量
 export default {
     web_name:'前端监控系统',
@@ -22,6 +27,7 @@ export default {
     //页面权限设置 0:所有人 3:所有登录用户 2:管理员级别 1:只有超级管理员
     page_grade:{
         listReport: 3,	//上报信息列表（必须登录）
+        project: 1,	//监控项目，管理员
         deleteReport: 2, //删除上报信息（管理员级别）
         changePassword:3,//修改密码（必须登录）
         delFile:3,	//批量或单个删除上传文件列表（管理员级别）
@@ -32,11 +38,7 @@ export default {
         passedUser:3,//审核用户列表
         deleteUser:1,//删除用户列表
     },
-    sort_type:{
-        'scscms':'阳光网站',
-        'test':'测试网站',
-    },
-    //这里不可使用ES6语法
+    sort_type:sortType,
     mixin:{
         methods:{
             dealUserInfo:function(o){
@@ -46,7 +48,7 @@ export default {
                 const g = this.grade;
                 if(g){
                     const p = this.page_grade;
-                    for(var k in g){
+                    for(let k in g){
                         if(g.hasOwnProperty(k)){
                             g[k] = p[k] < o.user_type;
                         }
