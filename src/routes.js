@@ -8,7 +8,7 @@ import userList from 'page/User/list.vue'
 import userAdd from 'page/User/add.vue'
 import project from 'page/Report/project.vue'
 import performance from 'page/Report/performance.vue'
-
+//在meta中可添加show:false,//是否显示此菜单属性
 export default {
     mode: 'history',
     base: __dirname,
@@ -23,7 +23,9 @@ export default {
         },{
             path: '/login',
             name:'login',
-            meta:{title:'登录'},
+            meta:{
+                title:'登录'
+            },
             component: Login
         },{
             path: '/Report',

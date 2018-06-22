@@ -143,7 +143,6 @@ const monitor = (function(W,D) {
                 timing: JSON.stringify(timing),
                 entries: JSON.stringify(entries)
             }
-            console.log(JSON.stringify(obj));
             navigator.sendBeacon(F.url.replace('beacon','performance'),JSON.stringify(obj));
         },
         //先缓存不上报
@@ -333,6 +332,7 @@ export default {
                     title: msg,
                     info:`错误源自：${trace} 错误`
                 });
+                console.warn(msg);//todo 暴露出去
             };
             Vue.config.errorHandler = (err, vm, info)=> {
                 let name = 'root instance';
@@ -344,6 +344,7 @@ export default {
                     title:`VUE组件：${name} 源自：${info} 错误`,
                     info: err.message ? err.name + ':' + err.message : err
                 });
+                console.error(err);//todo 暴露出去
             };
             Object.defineProperty(Vue.prototype, '$monitor', { value: monitor });
         }

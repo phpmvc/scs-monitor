@@ -141,7 +141,6 @@ const monitor = (function(W,D) {
                 timing: JSON.stringify(timing),
                 entries: JSON.stringify(entries)
             }
-            console.log(JSON.stringify(obj));
             navigator.sendBeacon(F.url.replace('beacon','performance'),JSON.stringify(obj));
         },
         //先缓存不上报

@@ -22,6 +22,12 @@ git clone https://github.com/scscms/scs-monitor.git
 npm install
 ```
 
+需要全局安装`concurrently`模块。否则会报`'concurrently' 不是内部或外部命令，也不是可运行的程序`
+
+```
+npm install -g concurrently
+```
+
 - mysql数据库
 
 首先安装mysql和新建用户等，教程自行解决。

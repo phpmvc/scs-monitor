@@ -102,7 +102,7 @@
 </template>
 
 <script type="text/javascript">
-    import {ajax, storage} from 'utils';
+    import {ajax, storage,mixin} from 'utils';
     import common from 'common';
     import components from 'components';
     //动画对象
@@ -231,7 +231,7 @@
                 const paths = ['/','*','/login','edit/:id'];
                 menu.forEach(obj => {
                     obj.meta = obj.meta||{};
-                    obj.meta.show = !paths.includes(obj.path);
+                    obj.meta.show = obj.meta.show !== false && !paths.includes(obj.path);
                     let count = 0;
                     obj.children && obj.children.forEach(item=>{
                         item.meta = item.meta||{};
@@ -373,7 +373,7 @@
                 }
             },
         },
-        mixins:[common.mixin],
+        mixins:[mixin],
         components,
         watch: {
             $route(to){

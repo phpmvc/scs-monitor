@@ -7,14 +7,6 @@ import koa_router from 'koa-router'
 import multer from 'koa-multer';
 import fs from 'fs'
 import koabody from 'koa-body';
-import sort_type from './sort_type'
-
-//公用：上报前抽查
-function SnapCheck(code,type = 'log'){
-    const obj = sort_type[code];
-    const key = type === 'log' ? 'log_odds' : 'performance_odds'
-    return obj && obj[key] > Math.random();
-}
 
 const routes = koa_router();
 
@@ -24,6 +16,7 @@ const urls = {
     'deleteReport': {}, //删除上报信息
     'performance': {userType: 0},    //上报性能信息
     'project': {userType: common.page_grade.project},    //采集项目
+    'getProject': {userType: 4},    //获取项目
     'updateProject': {userType: common.page_grade.project},    //更新项目
     'beacon': {userType: 0},    //上报信息
     'login'   : {userType: 0},	//用户登录（游客）
@@ -71,9 +64,6 @@ const storage = multer.diskStorage({
 //上报信息navigator.sendBeacon
 routes.post('/beacon', koabody(), async (ctx) => {
     const json = JSON.parse(ctx.request.body);
-    if(!SnapCheck(json.code)){
-        return ctx.body = 'misAlign'
-    }
     const browser = ctx.request.header['user-agent']||'';//浏览器信息
     const referrer = ctx.request.header.referer||'';//来源页
     const ip = config.getClientIP(ctx);
@@ -82,7 +72,7 @@ routes.post('/beacon', koabody(), async (ctx) => {
     const value = [];
     const values = [];
     json.list.forEach(d=>{
-        values.push(json.code.substring(0,10));
+        values.push(json.code);
         values.push(json.uin.substring(0,20));
         values.push(browser);
         values.push(ip);
@@ -94,15 +84,12 @@ routes.post('/beacon', koabody(), async (ctx) => {
         values.push(d.occurrence);//错误发生的时间戳
         value.push(_v);
     });
-    ctx.body = await api.saveReport(arr,value,values) > 0 ? 'ok' : 'no';
+    ctx.body = await api.saveReport(arr,value,values,json.code,ctx.request.host) > 0 ? 'ok' : 'no';
 });
 
 //上报性能信息
 routes.post('/performance', koabody(), async (ctx) => {
     const json = JSON.parse(ctx.request.body);
-    if(!SnapCheck(json.code,'performance')){
-        return ctx.body = 'misAlign'
-    }
     const browser = ctx.request.header['user-agent']||'';
     const referrer = ctx.request.header.referer||'';//来源页
     const ip = config.getClientIP(ctx);
@@ -140,7 +127,7 @@ routes.post('/performance', koabody(), async (ctx) => {
     arr.push('os');  values.push(os);
     arr.push('referrer');  values.push(referrer);
     arr.push('ip');  values.push(ip);
-    ctx.body = await api.saveReport(arr,values,'performance') > 0 ? 'ok' : 'no';
+    ctx.body = await api.saveReport(arr,values,'performance',json.code,ctx.request.host) > 0 ? 'ok' : 'no';
 })
 //上传文件
 routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {

@@ -23,7 +23,7 @@
     </div>
 </template>
 <script type="text/javascript">
-    import {ajax,storage} from 'utils';
+    import {ajax,storage,mixin} from 'utils';
     import common from 'common';
     module.exports = {
         name: 'list',
@@ -160,7 +160,7 @@
         mounted() {
             this.ajaxData();
         },
-        mixins:[common.mixin]
+        mixins:[mixin]
     }
 </script>
 <style lang="less">

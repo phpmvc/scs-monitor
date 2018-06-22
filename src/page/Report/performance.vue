@@ -7,7 +7,7 @@
             <el-form :inline="true" :model='search_data'>
                 <el-form-item v-if="showSort">
                     <el-select size="small" placeholder="选择项目" clearable v-model="search_data.sort_id">
-                        <el-option v-for="(value,key) in sort_type" :key="key"
+                        <el-option v-for="(value,key) in sortType" :key="key"
                                    :label="value" :value="key">
                         </el-option>
                     </el-select>
@@ -63,7 +63,7 @@
     </div>
 </template>
 <script type="text/javascript">
-    import {ajax,storage,formatDate} from 'utils';
+    import {ajax,storage,mixin,formatDate} from 'utils';
     import common from 'common';
     module.exports = {
         name: 'list',
@@ -109,9 +109,7 @@
                     ],
                     series: []
                 },
-                userInfo:{},
                 dateRange:'',
-                showSort:!0,
                 search_data: {
                     table:'performance',
                     sort_id:'',
@@ -120,7 +118,6 @@
                     page: 1,
                     pageSize: 10
                 },
-                sort_type:common.sort_type,
                 //表格数据
                 multipleSelection:[],
                 table_data: {
@@ -143,19 +140,6 @@
                 }
             }
         },
-        created(){
-            //特定用户
-            storage.get('userInfo',obj=>{
-                const t = common.sort_type;
-                let name = obj.userInfo.user_name;
-                Object.keys(t).forEach(k=>{
-                    if(name === t[k]){
-                        this.showSort = !1;
-                        this.search_data.sort_id = k;
-                    }
-                })
-            });
-        },
         methods: {
             deleteReport(arr){
                 if(!arr){
@@ -170,7 +154,7 @@
                     cancelButtonText: '取消',
                     type: 'warning'
                 }).then(() => {
-                    ajax.call(this, '/deleteReport', {ids:arr.map(o=>o.id).join(',')}, (d, err) => {
+                    ajax.call(this, '/deleteReport', {ids:arr.map(o=>o.id).join(','),table:'performance'}, (d, err) => {
                         !err && this.ajaxData();
                     })
                 }).catch(() => {});
@@ -188,7 +172,7 @@
                     let t = new Date(str);
                     str = formatDate('yyyy-mm-dd hh:mm:ss',t);
                 }else if(key === 'code'){
-                    str = common.sort_type[str]||'未知';
+                    str = this.sortType[str]||'未知';
                 }
                 return str;
             },
@@ -216,7 +200,7 @@
                                 }
                                 obj.data.push(row[arr[l]])
                             })
-                            o.xAxis[0].data.push(i+1+common.sort_type[row.code]);
+                            o.xAxis[0].data.push(i+1+this.sortType[row.code]);
                         })
                         if(!this.chartObj){
                             this.chartObj = this.$echarts.init(document.getElementById('main'),'light');
@@ -241,8 +225,8 @@
                 JSON.parse(row.entries).forEach(o => {
                     let d = o.duration
                     if (d) {
-                        let k = /[^.\/]+\.[^.]+(?=[?#].*)?$/.exec(o.url)
-                        k = k ? k[0] : o.type
+                        let k = /.+\/([^?#]+)/.exec(o.url)
+                        k = k ? k[1] : o.type
                         data.push({value:d,name:k})
                     }
                 })
@@ -291,7 +275,7 @@
             })
             this.ajaxData();
         },
-        mixins:[common.mixin],
+        mixins:[mixin],
     }
 </script>
 <style lang="less">

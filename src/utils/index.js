@@ -37,5 +37,6 @@ function formatDate(str, day) {
 module.exports = {
     storage: require('./storage.js'),
     ajax: require('./ajax.js'),
+    mixin: require('./mixin.js'),
     formatDate
 };

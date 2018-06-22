@@ -144,30 +144,46 @@ async function listReport(ctx) {
     }
 }
 
+//读取上报项目
+async function getProject(ctx){
+    const connection = await mysql.createConnection(config.mysqlDB);
+    const [list] = await connection.execute(`SELECT * FROM project order by sort`, []);
+    await connection.end();
+    ctx.body = {
+        success: true,
+        data:{data:list}
+    };
+}
 //共用保存上报信息
-async function saveReport(column,value,values) {
+async function saveReport(column,value,values,code,host) {
     let row = 0;
     const connection = await mysql.createConnection(config.mysqlDB);
+    let odds = values === 'performance' ? 'performance_odds' : 'log_odds'
+    //先抽样
+    const [list] = await connection.execute(`SELECT * FROM project where code=? LIMIT 1`, [code]);
+    if(list.length !== 1 ||!host.includes(list[0].domain)||list[0][odds] < Math.random()){
+        return 0;//不存在或不在指定域名下上报或不在抽样中
+    }
     if(values === 'performance') {
         const [result] = await connection.execute(`INSERT INTO performance (${column.join(',')}) VALUES (${column.map(() =>'?').join(',')})`, value);
         row = result.affectedRows;
     }else if(Array.isArray(values)){
         const [result] = await connection.execute(`INSERT INTO reports (${column.join(",")}) VALUES ${value.join(',')}`, values);
         row = result.affectedRows;
-        console.log('==========',row);
     }
     await connection.end();
     return row;
 }
-//管理员删除上报信息
+//管理员删除上报信息\性能信息
 async function deleteReport(ctx){
     const data = ctx.request.body;
+    const table = data.table === 'performance' ? 'performance' : 'reports'
     let ids = data.ids;
     let msg;
     if(/^\d+(,\d+)*$/.test(ids)){
         const arr = ids.split(',');
         const connection = await mysql.createConnection(config.mysqlDB);
-        const [result] = await connection.execute(`DELETE from reports where id in (${arr.map(() => '?').join(',')})`, arr);
+        const [result] = await connection.execute(`DELETE from ${table} where id in (${arr.map(() => '?').join(',')})`, arr);
         msg = result.affectedRows > 0 ? '':'删除上报失败！';
         await connection.end();
     }else{
@@ -495,6 +511,7 @@ export default {
     listReport,
     deleteReport,
     project,
+    getProject,
     updateProject,
     saveReport,
     listUser,

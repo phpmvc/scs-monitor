@@ -7,7 +7,7 @@
                 </el-form-item>
                 <el-form-item v-if="showSort">
                     <el-select size="small" placeholder="选择项目" clearable v-model="search_data.sort_id">
-                        <el-option v-for="(value,key) in sort_type" :key="key"
+                        <el-option v-for="(value,key) in sortType" :key="key"
                                    :label="value" :value="key">
                         </el-option>
                     </el-select>
@@ -57,7 +57,7 @@
     </div>
 </template>
 <script type="text/javascript">
-    import {ajax,storage,formatDate} from 'utils';
+    import {ajax,storage,formatDate,mixin} from 'utils';
     import common from 'common';
     module.exports = {
         name: 'list',
@@ -67,9 +67,7 @@
                 grade:{
                     deleteReport: !0,
                 },
-                userInfo:{},
                 dateRange:'',
-                showSort:!0,
                 search_data: {
                     title: '',
                     sort_id: '',
@@ -78,7 +76,6 @@
                     page: 1,
                     pageSize: 10
                 },
-                sort_type:common.sort_type,
                 //表格数据
                 multipleSelection:[],
                 table_data: {
@@ -93,19 +90,6 @@
                     data: []
                 }
             }
-        },
-        created(){
-            //特定用户
-            storage.get('userInfo',obj=>{
-                const t = common.sort_type;
-                let name = obj.userInfo.user_name;
-                Object.keys(t).forEach(k=>{
-                    if(name === t[k]){
-                        this.showSort = !1;
-                        this.search_data.sort_id = k;
-                    }
-                })
-            });
         },
         methods: {
             deleteReport(arr){
@@ -145,7 +129,7 @@
                 }else if(key === 'title' && str.includes('API:')){
                     str += '请求耗时(毫秒)';
                 }else if(key === 'code'){
-                    str = common.sort_type[str]||'未知';
+                    str = this.sortType[str]||'未知';
                 }
                 return str;
             },
@@ -179,7 +163,7 @@
         mounted() {
             this.ajaxData();
         },
-        mixins:[common.mixin],
+        mixins:[mixin],
     }
 </script>
 <style lang="less">

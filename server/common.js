@@ -1,8 +1,3 @@
-import sort_type from './sort_type'
-const sortType = {};
-Object.keys(sort_type).forEach(k=>{
-    sortType[k] = sort_type[k].name
-})
 //前、后台共用变量
 export default {
     web_name:'前端监控系统',
@@ -37,30 +32,5 @@ export default {
         updateUser:1,//添加、修改用户（超级管理员）
         passedUser:3,//审核用户列表
         deleteUser:1,//删除用户列表
-    },
-    sort_type:sortType,
-    mixin:{
-        methods:{
-            dealUserInfo:function(o){
-                if(this.hasOwnProperty('userInfo')){
-                    this.userInfo = o;
-                }
-                const g = this.grade;
-                if(g){
-                    const p = this.page_grade;
-                    for(let k in g){
-                        if(g.hasOwnProperty(k)){
-                            g[k] = p[k] < o.user_type;
-                        }
-                    }
-                }
-            }
-        },
-        created:function(){
-            this.dealUserInfo(this.$store.state.userInfo.data);
-        },
-        watch:{
-            '$store.state.userInfo.data':'dealUserInfo'
-        }
     }
 }

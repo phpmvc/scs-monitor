@@ -82,3 +82,7 @@ Vue.use(monitor);
 参考上面方法，把`monitor`替换成`this.$monitor`即可。
 
 示范例子请查看`tests`目录。
+
+
+### 待办事项
+1.改写console捕获日志上报
