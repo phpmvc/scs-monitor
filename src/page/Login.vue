@@ -58,7 +58,7 @@
             };
         },
         mounted(){
-            storage.remove('token');
+            storage.remove('userInfo');
         },
         methods: {
             login() {

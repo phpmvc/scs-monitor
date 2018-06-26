@@ -75,7 +75,6 @@ module.exports = function (url,data,fn) {
                     'type': 'error'
                 });
                 if (err.includes("token")) {
-                    storage.remove('token');
                     this.$router.push({'path': '/login', 'query': {'login': 'error','url':this.$route.fullPath}});
                     return;//如果是因没登录问题直接跳转到登录
                 }
