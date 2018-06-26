@@ -5,8 +5,7 @@
  */
 const monitor = (function(W,D) {
     const F = {
-        //random: location.hostname === 'localhost' ? 0 : 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
-        random: 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
+        random: location.hostname === 'localhost' ? 0 : 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
         code: 'monitor', // 后台监控项目相应的编码（必配置）。
         url:'http://localhost:8000/api/beacon', //上报接口（必配置）,
         key:'monitor',//存储localStorage的key。以防与其他脚本重复请适当修改。
@@ -16,7 +15,7 @@ const monitor = (function(W,D) {
         pathname:['/login','/index.html'],//需要性能测试的页面，必须数组一般只统计首页。
     };
     if(!navigator.sendBeacon||!W.performance){
-        return {
+        return W.monitor = {
             init:function(){return F},
             push:function(){},
             beacon:function(){}
@@ -197,7 +196,7 @@ const monitor = (function(W,D) {
         }
     }, false)
     W.onerror = function(msg,url,line,col,error) {
-        msg = typeof msg === 'object'? msg.message:msg;
+        msg = T.isType(msg)? msg.message:msg;
         if(msg === 'Script error.')return;//忽略第三方js链接文件错误
         monitor.push({
             title: msg,
@@ -297,7 +296,7 @@ const monitor = (function(W,D) {
     const _w = D.write;//备用方法
     const _i = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
     const fun = (d, t, c) => {
-        if(typeof d === 'object'){
+        if(T.isType(d)){
             if(d.nodeName === 'SCRIPT' && !T.checkURL(d.src)){
                 monitor.push({
                     title: t + ' '+ d.tagName,
@@ -321,7 +320,8 @@ const monitor = (function(W,D) {
                     info: reg.join()+(arr.length?`已拦截${arr.join(',')}`:'')
                 });
             }
-            t === 'innerHTML'?_i.set.call(c, str):_w.call(c, str)
+            t === 'innerHTML' && _i.set.call(c, str)
+            t === 'Document.write' && _w.call(c, str)
         }
     };
     D.write = D.writeln = str => {

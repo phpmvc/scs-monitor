@@ -83,7 +83,7 @@ routes.post('/beacon', koabody(), async (ctx) => {
         values.push(d.occurrence);//错误发生的时间戳
         value.push(_v);
     });
-    ctx.body = await api.saveReport(arr,value,values,json.code,ctx.request.header.origin) > 0 ? 'ok' : 'no';
+    ctx.body = await api.saveReport(arr,value,values,json.code,ctx.request.header.referer) > 0 ? 'ok' : 'no';
 });
 
 //上报性能信息
@@ -130,7 +130,7 @@ routes.post('/performance', koabody(), async (ctx) => {
     arr.push('os');  values.push(os);
     arr.push('referrer');  values.push(referrer);
     arr.push('ip');  values.push(ip);
-    ctx.body = await api.saveReport(arr,values,'performance',json.code,ctx.request.header.origin) > 0 ? 'ok' : 'no';
+    ctx.body = await api.saveReport(arr,values,'performance',json.code,ctx.request.header.referer) > 0 ? 'ok' : 'no';
 })
 //上传文件
 routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {
