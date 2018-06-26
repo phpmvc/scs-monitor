@@ -10,6 +10,10 @@ module.exports = {
         }
     },
     methods: {
+        handleSizeChange(val) {
+            this.search_data.pageSize = val
+            this.ajaxData()
+        },
         dealUserInfo(o) {
             if (this.hasOwnProperty('userInfo')) {
                 this.userInfo = o
@@ -27,18 +31,20 @@ module.exports = {
     },
     created() {
         this.dealUserInfo(this.$store.state.userInfo.data)
-        ajax.call(this, '/getProject', {}, (d, err) => {
-            const t = this.sortType
-            d.data.forEach(obj => {
-                t[obj.code] = obj.name
-            })
-            //特定用户
-            storage.get('userInfo', obj => {
-                if (Object.keys(t).includes(obj.userInfo.user_name)) {
-                    this.showSort = !1
-                    this.search_data.sort_id = k
-                }
-            })
+        ajax.call(this, '/project', {}, (d, err) => {
+            if(!err){
+                const t = this.sortType
+                d.data.forEach(obj => {
+                    t[obj.code] = obj.name
+                })
+                //特定用户
+                storage.get('userInfo', obj => {
+                    if (Object.keys(t).includes(obj.userInfo.user_name)) {
+                        this.showSort = !1
+                        this.search_data.sort_id = k
+                    }
+                })
+            }
         })
     },
     watch: {

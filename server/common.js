@@ -32,5 +32,7 @@ export default {
         updateUser:1,//添加、修改用户（超级管理员）
         passedUser:3,//审核用户列表
         deleteUser:1,//删除用户列表
-    }
+    },
+    project_list:[],//项目列表(后端使用)
+    page_sizes:[10,20,50,100,150,200]
 }

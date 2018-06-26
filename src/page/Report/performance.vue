@@ -5,6 +5,9 @@
         </div>
         <el-row class="grid-table">
             <el-form :inline="true" :model='search_data'>
+                <el-form-item>
+                    <el-input size="small" placeholder="页面地址" v-model="search_data.url"></el-input>
+                </el-form-item>
                 <el-form-item v-if="showSort">
                     <el-select size="small" placeholder="选择项目" clearable v-model="search_data.sort_id">
                         <el-option v-for="(value,key) in sortType" :key="key"
@@ -35,9 +38,14 @@
                         <el-form label-position="left" inline class="table-expand">
                             <el-form-item label="用户："><span>{{ props.row.uin }}</span></el-form-item>
                             <el-form-item label="上报IP："><span>{{ props.row.ip }}</span></el-form-item>
-                            <el-form-item label="系统："><span>{{ props.row.os +' 宽：'+ props.row.screen_width+' 高：'+ props.row.screen_height+' 像素比：'+ props.row.pixel_ratio}}</span></el-form-item>
+                            <el-form-item label="系统："><span>{{props.row.os}}
+                                <strong>宽：</strong>{{props.row.screen_width}}
+                                <strong>高：</strong>{{ props.row.screen_height}}
+                                <strong>像素比：</strong>{{ props.row.pixel_ratio}}</span></el-form-item>
                             <el-form-item label="来源页："><span>{{ props.row.referrer }}</span></el-form-item>
-                            <el-form-item label="当前页面："><span>{{ props.row.url +' 类型：'+ props.row.type+' 重定向数：'+ props.row.redirect_count}}</span></el-form-item>
+                            <el-form-item label="来源方式："><span>{{props.row.enter}}
+                            <strong>重定向：</strong>{{ props.row.redirect_count}}次
+                            </span></el-form-item>
                             <el-form-item label="浏览器："><span>{{ props.row.browser }}</span></el-form-item>
                         </el-form>
                     </template>
@@ -53,10 +61,12 @@
                 </el-table-column>
             </el-table>
             <el-pagination
+                @size-change="handleSizeChange"
                 @current-change="handleCurrentChange"
                 :current-page="search_data.page"
+                :page-sizes="page_sizes"
                 :page-size="search_data.pageSize"
-                layout="total, prev, pager, next,jumper"
+                layout="sizes, total, prev, pager, next,jumper"
                 :total="table_data.total">
             </el-pagination>
         </el-row>
@@ -70,6 +80,7 @@
         data() {
             return {
                 page_grade:common.page_grade,
+                page_sizes:common.page_sizes,
                 grade:{
                     deleteReport: !0,
                 },
@@ -112,17 +123,25 @@
                 dateRange:'',
                 search_data: {
                     table:'performance',
+                    url:'',
                     sort_id:'',
                     begin: 0,
                     end: 0,
                     page: 1,
                     pageSize: 10
                 },
+                entryMode:{
+                    0:'普通进入',
+                    1:'刷新进入',
+                    2:'历史记录',
+                    255:'其他方式'
+                },
                 //表格数据
                 multipleSelection:[],
                 table_data: {
                     columns: [
                         {'key': 'code', 'name': '项目', minWidth: 115},
+                        {'key': 'url', 'name': '页面', width: 120},
                         {'key': 'browser_type', 'name': '浏览器', width: 100},
                         {'key': 'redirect', 'name': '重定向耗时', width: 100},
                         {'key': 'dns_lookup', 'name': 'CDN耗时', width: 90},
@@ -193,6 +212,7 @@
                         let o = this.setOption;
                         const arr = ['redirect','dns_lookup','tcp_connect','request','response','first_paint','dom_complete','dom_ready','dom_load']
                         obj.data.forEach((row,i)=>{
+                            row.enter = this.entryMode[row.type]
                             o.series.forEach((obj,l)=>{
                                 if(i === 0){
                                     o.xAxis[0].data = []
@@ -290,5 +310,12 @@
         left:900px;
         width:300px;
         height:200px;
+    }
+    .grid-table .el-table__expanded-cell{
+        span{color:#a8b3c3}
+        strong{
+            margin-left:8px;
+            color:#2d3c52
+        }
     }
 </style>

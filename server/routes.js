@@ -15,8 +15,7 @@ const urls = {
     'listReport': {},
     'deleteReport': {}, //删除上报信息
     'performance': {userType: 0},    //上报性能信息
-    'project': {userType: common.page_grade.project},    //采集项目
-    'getProject': {userType: 4},    //获取项目
+    'project': {userType: 4},    //项目列表
     'updateProject': {userType: common.page_grade.project},    //更新项目
     'beacon': {userType: 0},    //上报信息
     'login'   : {userType: 0},	//用户登录（游客）
@@ -84,7 +83,7 @@ routes.post('/beacon', koabody(), async (ctx) => {
         values.push(d.occurrence);//错误发生的时间戳
         value.push(_v);
     });
-    ctx.body = await api.saveReport(arr,value,values,json.code,ctx.request.host) > 0 ? 'ok' : 'no';
+    ctx.body = await api.saveReport(arr,value,values,json.code,ctx.request.header.origin) > 0 ? 'ok' : 'no';
 });
 
 //上报性能信息
@@ -117,17 +116,21 @@ routes.post('/performance', koabody(), async (ctx) => {
     }else if(bt === 'compatible; MSIE'){
         bt = 'IE'+/MSIE (\d+)/.exec(browser)[1]
     }
-    const arr = ['code', 'uin', 'screen_width', 'screen_height', 'pixel_ratio', 'url', 'type', 'redirect_count', 'redirect', 'dns_lookup', 'tcp_connect', 'request', 'response', 'first_paint', 'dom_complete', 'dom_ready', 'dom_load', 'timing', 'entries']
+    if (bt === 'other') {
+        let reg = /\w+spider/.exec(browser)
+        reg && (bt = reg[0]) //搜索引擎
+    }
+    const arr = ['code', 'uin', 'screen_width', 'screen_height', 'pixel_ratio', 'url', 'type', 'redirect_count', 'redirect', 'dns_lookup', 'tcp_connect', 'request', 'response', 'first_paint', 'dom_complete', 'dom_ready', 'dom_load','view_time', 'timing', 'entries']
     const values = []
     arr.forEach(k=>{
-        values.push(json[k])
+        values.push(json[k]||0)
     })
     arr.push('browser');  values.push(browser);
     arr.push('browser_type');  values.push(bt);
     arr.push('os');  values.push(os);
     arr.push('referrer');  values.push(referrer);
     arr.push('ip');  values.push(ip);
-    ctx.body = await api.saveReport(arr,values,'performance',json.code,ctx.request.host) > 0 ? 'ok' : 'no';
+    ctx.body = await api.saveReport(arr,values,'performance',json.code,ctx.request.header.origin) > 0 ? 'ok' : 'no';
 })
 //上传文件
 routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {

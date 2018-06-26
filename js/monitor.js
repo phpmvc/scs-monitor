@@ -3,15 +3,14 @@
  */
 const monitor = (function(W,D) {
     const F = {
-        code: 'monitor', // 上报的code标识
-        uin: '', // 用户
-        whiteList:[location.hostname,'www.qq.com','www.baidu.com'], //白名单（非数组表示不过滤）
-        pathname:['/','/index.html','/login'],//需要性能测试页面
-		prevent:location.hostname !== 'localhost', //是否禁止捕获（开发时可设为true）
-        key:'monitor',//localStorage key
-        url:'http://localhost:8000/api/beacon', //上报接口(默认不应该修改)
-        ignore: [], // 忽略某些关键词错误, 支持String或Regexp
-        random: 1 // 抽样 (0-1] 1-全量
+        random: location.hostname === 'localhost' ? 0 : 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
+        code: 'monitor', // 后台监控项目相应的编码（必配置）。
+        url:'http://localhost:8000/api/beacon', //上报接口（必配置）,
+        key:'monitor',//存储localStorage的key。以防与其他脚本重复请适当修改。
+        uin: '', // 被监控网站所登录的用户（可选），为方便追踪错误来源。也要警防用户信息泄漏。,
+        ignore: ['[HMR]','Ignored an update'], // 忽略某些关键词错误, 支持String或Regexp
+        hostList:[location.host,'qq.com'], //host白名单（非数组表示不过滤）
+        pathname:['/login','/index.html'],//需要性能测试的页面，必须数组一般只统计首页。
     };
     if(!navigator.sendBeacon||!W.performance){
         return {
@@ -21,14 +20,17 @@ const monitor = (function(W,D) {
         }
     }
     const T = {
+        log: W.console.log,
+        warn: W.console.warn,
+        error: W.console.error,
         isType(o, type) {
             return Object.prototype.toString.call(o) === '[object ' + (type || 'Object') + ']';
         },
         checkURL(url){
             //检查白名单
-            if(Array.isArray(F.whiteList)){
-                let reg = url.toString().match(/https?:\/\/([^:\/]+)/i)
-                return reg ? F.whiteList.includes(reg[1]) : !0
+            if(Array.isArray(F.hostList)){
+                let reg = url.toString().match(/https?:\/\/([^\/]+)/i)
+                return reg ? F.hostList.some(v=>reg[1].endsWith(v)) : !0
             }else{
                 return !0;
             }
@@ -48,8 +50,11 @@ const monitor = (function(W,D) {
             let ignore = msg.title && msg.info ? F.random <= Math.random() : !0;
             if(!ignore){
                 //处理一下数据
-                msg.title = msg.title.substring(0,200);
+                msg.title = msg.title.substring(0,50);
                 msg.url = (msg.url||W.location.href).substring(0,200);
+                if(msg.url.endsWith('.hot-update.json')){
+                    ignore = !0 //忽略webpack热更新文件
+                }
                 msg.occurrence = Date.now();
                 msg.amount = 1;
                 if(!Number.isInteger(msg.info)||!msg.title.startsWith('API:')){
@@ -79,31 +84,6 @@ const monitor = (function(W,D) {
                     }
                 }
             }
-            //判断条件自动上报
-            let _this = this;
-            let d = F.key+'_Date';
-            let k = F.key+'_Url';
-            let l = localStorage.getItem(d);
-            let t = new Date().toDateString();
-            /\d/.test(l) && l !== t && this.beacon();
-            localStorage.setItem(d,t);//总是写入
-
-            let u = JSON.parse(localStorage.getItem(k));
-            let p = location.pathname;//当前页面地址
-            if(!Array.isArray(u)){
-                u = [];
-                localStorage.setItem(k,'[]');
-            }
-            W.addEventListener('load', function () {
-                //如果没有阻止上报，且本页在列表中并且没有汇报过
-                if (!F.prevent && !u.includes(p)) {
-                    if (Array.isArray(F.pathname) && F.pathname.includes(p) || p.includes('index')) {
-                        setTimeout(_this.performance, 1)
-                        u.push(p)
-                        localStorage.setItem(k, JSON.stringify(u))
-                    }
-                }
-            }, false)
             return F;
         },
         //上报性能测试
@@ -138,6 +118,7 @@ const monitor = (function(W,D) {
                 dom_complete: timing.domComplete - timing.domInteractive,
                 dom_ready: timing.domContentLoadedEventEnd - timing.domainLookupStart,
                 dom_load: timing.loadEventEnd - timing.domainLookupStart,
+                view_time: Date.now() - T.timeIn,
                 timing: JSON.stringify(timing),
                 entries: JSON.stringify(entries)
             }
@@ -145,7 +126,7 @@ const monitor = (function(W,D) {
         },
         //先缓存不上报
         push(msg){
-            if(F.prevent||!T.isType(msg)||T.isIgnore(msg)){
+            if(!T.isType(msg)||T.isIgnore(msg)){
                 return;//没有阻止，参数必须是对象,同时在抽样范围内
             }
             const arr = T.getStorage();
@@ -183,12 +164,35 @@ const monitor = (function(W,D) {
                     o.info = o.info.join();
                 }
             });
-            if(!F.prevent && arr.length){
+            if(arr.length){
                 //如果全量上报且上报成功，删除缓存
                 navigator.sendBeacon(F.url,JSON.stringify({code:F.code,uin:F.uin,list:arr})) && !isObj && localStorage.removeItem(F.key);
             }
         }
     };
+    W.addEventListener('load', function () {
+        T.timeIn = Date.now()//用于统计用户停留时间
+    })
+    W.addEventListener('beforeunload', function () {
+        monitor.beacon();//上报日志
+        let k = F.key+'_Url';
+        let u = [];
+        let p = location.pathname;//当前页面地址
+        let n = F.pathname
+        !Array.isArray(n) && (n = ['/']) //必须是指定页面统计，否则太多没意义。
+        try{
+            u = JSON.parse(localStorage.getItem(k));
+        }catch (e){}
+        if(!Array.isArray(u)){
+            u = [];
+            localStorage.setItem(k,'[]');
+        }
+        if (!u.includes(p) && n.includes(p)) {
+            u.push(p)
+            localStorage.setItem(k, JSON.stringify(u))
+            monitor.performance()
+        }
+    }, false)
     W.onerror = function(msg,url,line,col,error) {
         msg = typeof msg === 'object'? msg.message:msg;
         if(msg === 'Script error.')return;//忽略第三方js链接文件错误
@@ -197,6 +201,27 @@ const monitor = (function(W,D) {
             url: url,
             info: 'line:' + line + 'col:' + col
         });
+    }
+    //写入缓存
+    localStorage.setItem(F.key+'_Date',new Date().toDateString());
+    //重写console
+    function handleConsole(t,arg){
+        let r = [].slice.call(arg)
+        let i = r.map(v=>T.isType(v)?JSON.stringify(v):v).join(',')
+        monitor.push({
+            title: `console.${t}: ${i}`,
+            info: i
+        });
+        T[t].apply(W.console,r)
+    }
+    W.console.log = function() {
+        handleConsole('log',arguments)
+    }
+    W.console.warn = function() {
+        handleConsole('warn',arguments)
+    }
+    W.console.error = function() {
+        handleConsole('error',arguments)
     }
     //重写fetch
     if (W.fetch) {

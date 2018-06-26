@@ -1,4 +1,4 @@
-# 前端监控系统<sup>monitor</sup>上报插件V3.0
+# 前端监控系统<sup>monitor</sup>上报插件V3.0.1
 
 	新增防劫持功能
 
@@ -12,29 +12,19 @@
 
 ```
 monitor.init({
-    code: 'monitor', // 上报的code标识
-    uin: '', // 用户
-    whiteList:[location.hostname,'www.qq.com','www.baidu.com'], //白名单（非数组表示不过滤）
-    pathname:['/','/index.html','/login'],//需要性能测试页面
-    prevent:location.hostname !== 'localhost', //是否禁止捕获（开发时可设为true）
-    key:'monitor',//localStorage key
-    url:'http://localhost:8000/api/beacon', //上报接口(默认不应该修改)
+    random: location.hostname === 'localhost' ? 0 : 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
+    code: 'monitor', // 后台监控项目相应的编码（必配置）。
+    url:'http://localhost:8000/api/beacon', //上报接口（必配置）,
+    key:'monitor',//存储localStorage的key。以防与其他脚本重复请适当修改。
+    uin: '', // 被监控网站所登录的用户（可选），为方便追踪错误来源。也要警防用户信息泄漏。,
     ignore: [], // 忽略某些关键词错误, 支持String或Regexp
-    random: 1 // 抽样 (0-1] 1-全量
+    hostList:[location.host,'qq.com'], //host白名单（非数组表示不过滤）
+    pathname:['/','/index.html'],//需要性能测试的页面，必须数组一般只统计首页。
 })
 ```
 
-- code:就是监控网站标识，让后台知道是哪个网站上报的错误。请参见server/common.js  sort_type配置
-- uin:被监控网站所登录的用户（可选），为方便追踪错误来源及还原bug操作。
-- whiteList:表示可以加载哪些网站的资源，不在列表中的将会禁止并上报情况。此字段不是数组表示全开放。
-- pathname:需要统计首屏加载情况的页面路径。
-- key:存储localStorage的key，可任意修改。
-- url:上报日志地址（重要）
-- ignore:忽略某些关键词错误, 支持String或Regexp。
-- random:抽样上报(0-1] 1-全量。
-
-> code标识必须与网站中的`监控项目`中有相应配置，否则后台不保存数据。
 > random指前端的抽样上报。后端同样有日志和性能上报抽样配置。入库的机率等于两者相乘。
+> code标识必须与网站中的`监控项目`中有相应配置，否则后台不保存数据。
 
 ***注意：初始化后基本上就可以了，如果你想手动添加日志也是可以的。***
 
@@ -47,23 +37,18 @@ monitor.push({
     url:'错误来源页（可选）为空时自动取location.href值'
 })
 ```
-##### 捕捉try错误日志：
+##### 捕捉console日志：
 
 ```
-try{
-    let a = b + 1;
-    if(a){
-        throw Error("手动抛出错误");
-    }
-}catch(e){
-    this.$monitor.push({
-        title: e.message,
-        info: e.stack
-    });
-    console.error('捕捉有误：',e.stack)
-}
+console.log('一条日志');
+console.warn('一条警告');
+console.error('一条错误');
+throw Error("手动抛出错误");
+//以上方法都会监听并上报日志
+
+console.info('一条信息');//没有监听此函数，不想被上报的信息建议使用此方法。
 ```
-注意：此处默认获取js自身错误。如果需要手动抛出错误，请使用`throw Error("something");`而不要使用`throw "something";`
+注意：此处默认获取js自身错误。如果需要手动抛出错误，请使用`throw Error("something");`而不要使用`throw "something";`。而vue内部做了处理，两都都可以捕获到。
 
 
 ---
@@ -84,5 +69,7 @@ Vue.use(monitor);
 示范例子请查看`tests`目录。
 
 
-### 待办事项
-1.改写console捕获日志上报
+### 升级日志
+1.添加view_time用户停留时间统计 2018-6-25
+2.改写console捕获日志上报 2018-6-25
+3.使用puppeteer辅助获取首屏性能测试数据（计划中...）

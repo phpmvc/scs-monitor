@@ -3,7 +3,7 @@
         <el-row class="grid-table">
             <el-form :inline="true" :model='search_data'>
                 <el-form-item>
-                    <el-input size="small" placeholder="错误标题" v-model="search_data.title"></el-input>
+                    <el-input size="small" placeholder="监控标题" v-model="search_data.title"></el-input>
                 </el-form-item>
                 <el-form-item v-if="showSort">
                     <el-select size="small" placeholder="选择项目" clearable v-model="search_data.sort_id">
@@ -47,10 +47,12 @@
                 </el-table-column>
             </el-table>
             <el-pagination
+                @size-change="handleSizeChange"
                 @current-change="handleCurrentChange"
                 :current-page="search_data.page"
+                :page-sizes="page_sizes"
                 :page-size="search_data.pageSize"
-                layout="total, prev, pager, next,jumper"
+                layout="sizes,total, prev, pager, next,jumper"
                 :total="table_data.total">
             </el-pagination>
         </el-row>
@@ -64,6 +66,7 @@
         data() {
             return {
                 page_grade:common.page_grade,
+                page_sizes:common.page_sizes,
                 grade:{
                     deleteReport: !0,
                 },

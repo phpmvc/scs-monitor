@@ -1,4 +1,4 @@
-# 前端监控系统V3.0<sup>monitor</sup>
+# 前端监控系统V3.0.1<sup>monitor</sup>
 
 前端监控系统
 
@@ -58,3 +58,12 @@ npm run start  #开发期，运行前后端
 ### 前端上报方法
 
 参见 [js/README.md](./js/README.md)
+
+### 升级日志
+
+* V3.0.1
+    1.添加view_time用户停留时间统计 2018-6-25
+    2.改写console捕获日志上报 2018-6-25
+    
+* V3.0.2
+    1.working

@@ -24,16 +24,19 @@ function sendEmail(email, title, body) {
         });
     })
 }
+//从数据库读取上报项目
+async function privateGetProject(){
+    const connection = await mysql.createConnection(config.mysqlDB);
+    const [list] = await connection.execute(`SELECT * FROM project order by sort`, []);
+    await connection.end();
+    common.project_list = list;
+}
 //项目列表
 async function project(ctx) {
-    const connection = await mysql.createConnection(config.mysqlDB);
-    const [list] = await connection.execute("SELECT * FROM `project` ORDER BY sort",[]);
-    await connection.end();
     ctx.body = {
         success: true,
-        data:{data:list}
+        data:{data:common.project_list}
     };
-    return list;
 }
 //更新项目（保存、修改和删除）
 async function updateProject(ctx) {
@@ -75,19 +78,10 @@ async function updateProject(ctx) {
             }
         }
     }
+    await connection.end()
     if(!msg){
-        const [list] = await connection.execute(`SELECT code,name,log_odds,performance_odds FROM project ORDER BY sort`, []);
-        const json = {}
-        list.forEach(obj=>{
-            json[obj.code] = {
-                name:obj.name,
-                log_odds: + obj.log_odds,
-                performance_odds: + obj.performance_odds
-            };
-        })
-        fs.writeFileSync('./server/sort_type.js','export default' + JSON.stringify(json, null, '\t'));
+        await privateGetProject();
     }
-    await connection.end();
     ctx.body = {
         success: !msg,
         message: msg,
@@ -108,6 +102,10 @@ async function listReport(ctx) {
         querying += " and title like ?";
         arr.push('%' + data.title + '%');
     }
+    if(data.url){
+        querying += ' and url = ?';
+        arr.push(data.url);
+    }
     if(data.sort_id){
         querying += ' and code = ?';
         arr.push(data.sort_id);
@@ -123,7 +121,6 @@ async function listReport(ctx) {
         }
     }
     querying = querying.replace('and','where');
-    console.log(`SELECT SQL_NO_CACHE COUNT(*) as total FROM ${table} ${querying}`)
     const connection = await mysql.createConnection(config.mysqlDB);
     const [rows] = await connection.execute(`SELECT SQL_NO_CACHE COUNT(*) as total FROM ${table} ${querying}`, arr);
     const total = rows[0].total;//总数量
@@ -143,35 +140,23 @@ async function listReport(ctx) {
         }
     }
 }
-
-//读取上报项目
-async function getProject(ctx){
-    const connection = await mysql.createConnection(config.mysqlDB);
-    const [list] = await connection.execute(`SELECT * FROM project order by sort`, []);
-    await connection.end();
-    ctx.body = {
-        success: true,
-        data:{data:list}
-    };
-}
 //共用保存上报信息
-async function saveReport(column,value,values,code,host) {
+async function saveReport(column,value,values,code,origin='') {
+    //连接数据库前先判断是否合法及抽样
     let row = 0;
-    const connection = await mysql.createConnection(config.mysqlDB);
+    let obj = common.project_list.find(arr => arr.code === code)
     let odds = values === 'performance' ? 'performance_odds' : 'log_odds'
-    //先抽样
-    const [list] = await connection.execute(`SELECT * FROM project where code=? LIMIT 1`, [code]);
-    if(list.length !== 1 ||!host.includes(list[0].domain)||list[0][odds] < Math.random()){
-        return 0;//不存在或不在指定域名下上报或不在抽样中
+    if (obj && origin.includes(obj.domain) && obj[odds] > Math.random()) {
+        const connection = await mysql.createConnection(config.mysqlDB)
+        if (values === 'performance') {
+            const [result] = await connection.execute(`INSERT INTO performance (${column.join(',')}) VALUES (${column.map(() => '?').join(',')})`, value)
+            row = result.affectedRows
+        } else if (Array.isArray(values)) {
+            const [result] = await connection.execute(`INSERT INTO reports (${column.join(",")}) VALUES ${value.join(',')}`, values)
+            row = result.affectedRows
+        }
+        await connection.end()
     }
-    if(values === 'performance') {
-        const [result] = await connection.execute(`INSERT INTO performance (${column.join(',')}) VALUES (${column.map(() =>'?').join(',')})`, value);
-        row = result.affectedRows;
-    }else if(Array.isArray(values)){
-        const [result] = await connection.execute(`INSERT INTO reports (${column.join(",")}) VALUES ${value.join(',')}`, values);
-        row = result.affectedRows;
-    }
-    await connection.end();
     return row;
 }
 //管理员删除上报信息\性能信息
@@ -457,7 +442,6 @@ async function listUpFile(ctx) {
     if(page > pages){
         page = Math.max(1,pages);//以防没数据
     }
-    console.log((page - 1) * pageSize,page * pageSize);
     const [list] = await connection.execute('SELECT a.*,u.`user_name` FROM upload as a LEFT JOIN user as u on a.user_id = u.id LIMIT ?, ?', [(page - 1) * pageSize,pageSize]);
     await connection.end();
     list.forEach(obj=>{
@@ -506,12 +490,11 @@ async function delFile(ctx) {
         data: {}
     }
 }
-
+privateGetProject();//默认获取一次
 export default {
     listReport,
     deleteReport,
     project,
-    getProject,
     updateProject,
     saveReport,
     listUser,

@@ -5,7 +5,7 @@ import 'nprogress/nprogress.css';
 import storage from './storage';
 
 // axios 配置
-axios.defaults.timeout = 1000;//请求超时，适当修改
+axios.defaults.timeout = 5000;//请求超时，适当修改
 axios.defaults.baseURL = "/api";
 // http request 拦截器
 axios.interceptors.request.use(config => {
@@ -81,11 +81,11 @@ module.exports = function (url,data,fn) {
                 }
             }
             if(!err && typeof res.data.data !== 'object'){
-                console.error("返回对象不能为空！");
+                console.warn("返回对象不能为空！");
             }
             fn.call(this,err ? null : res.data.data,err);
         }
     ).catch(err=>{
-        console.log("代码有问题：",err);
+        console.error("代码有问题：",err);
     });
 };
