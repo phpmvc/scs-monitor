@@ -21,9 +21,6 @@
                     </el-date-picker>
                 </el-form-item>
                 <el-form-item style="text-align: right">
-                    <el-input-number v-model="search_data.pageSize" size="small" :min="10" :max="100" label="分页"></el-input-number>
-                </el-form-item>
-                <el-form-item style="text-align: right">
                     <el-button size="small" icon="search" @click='onSearch'>查询</el-button>
                 </el-form-item>
             </el-form>

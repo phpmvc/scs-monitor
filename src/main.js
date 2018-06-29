@@ -2,7 +2,7 @@ import 'babel-polyfill';
 import Vue from 'vue';
 import App from './App';
 import ElementUI from 'element-ui';
-import '../static/style.css';
+import 'assets/style.css';
 import 'element-ui/lib/theme-chalk/index.css';
 import VueRouter from 'vue-router';
 import Vuex from 'vuex';
