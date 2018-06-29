@@ -91,3 +91,6 @@ html, body, #app {
     background: #50504f;
     height: 100%;
 }
+.el-table-column--selection{
+    text-align: center;
+}

@@ -105,6 +105,7 @@
                     }, [h("img",{style:"max-width:400px",attrs:{src:row.full_path},on:{error:()=>{row.full_path = self.errPic}}})]), h("div", {
                         directives: [{name: "popover",rawName: "v-popover:pop",arg: "pop"}]
                     },row[key])]);
+
                 }else if(key === 'create_time'){
                     str = str.replace(/[^-\d].+/,'');
                 }else if(key === 'operations'){

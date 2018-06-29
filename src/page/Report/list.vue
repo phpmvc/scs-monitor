@@ -91,6 +91,13 @@
                     ],
                     total: 0,
                     data: []
+                },
+                icoObj:{
+                    api:'info',
+                    warn:'warning',
+                    error:'error',
+                    script:'star-on',
+                    other:'question'
                 }
             }
         },
@@ -133,6 +140,8 @@
                     str += '请求耗时(毫秒)';
                 }else if(key === 'code'){
                     str = this.sortType[str]||'未知';
+                    let c = this.icoObj[this.getLogType(row.title)]
+                    return h('div',[h('i',{attrs:{style:'margin-right:5px','class':'el-icon-'+c}}),str])
                 }
                 return str;
             },
@@ -217,6 +226,12 @@
         }
         .el-cascader--small .el-cascader__label{
             line-height: 40px;
+        }
+        .el-table__row{
+            .el-icon-info{color:#909399}
+            .el-icon-warning{color:#E6A23C}
+            .el-icon-error{color:#F56C6C}
+            .el-icon-star-on{color:red}
         }
     }
 </style>

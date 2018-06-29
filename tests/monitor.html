@@ -7,15 +7,18 @@
 <body>
 <button type="button" onclick="fun('err')">捕捉错误</button>
 <button type="button" onclick="fun('log')">插入日志</button>
+<button type="button" onclick="fun('console')">捕获console</button>
+<button type="button" onclick="fun('throw')">手动抛错</button>
 <button type="button" onclick="fun('api')">API耗时</button>
-<button type="button" onclick="fun('append')">插入外链</button>
+<button type="button" disabled>插入外链</button>
 <button type="button" onclick="fun('beacon')">批量上报</button>
+<button type="button" onclick="fun('performance')">首屏性能上报</button>
 <button type="button" onclick="fun('clear')">清空缓存</button>
 <div style="margin-top: 10px">
     <textarea name="log" id="log" cols="80" rows="20"></textarea>
 </div>
 
-<script type="text/javascript" src="../js/monitor.js"></script>
+<script type="text/javascript" src="../js/monitorES5.js"></script>
 <script type="text/javascript">
     function fun(type) {
         switch (type){
@@ -31,36 +34,37 @@
                     info: time
                 });
                 break;
+            case 'console':
+                console.log('一条日志');
+                console.warn('一条警告');
+                console.error('一条错误');//以上方法都会监听并上报日志
+                console.info('这条信息不捕获');//没有监听此函数，不想被上报的信息建议使用此方法。
+                break;
+            case 'throw':
+                throw Error("手动抛出错误");
             case 'log':
                 monitor.push({
                     title: 'API:手动添加日志',
                     info: '因本条不是API统计，所以title会过滤`API:`字符！'
                 });
                 break;
-            case 'append':
-                let js = document.createElement('script');
-                js.src = 'http://www.baidu.com/js.js';
-                document.body.appendChild(js);
-                break;
             case 'beacon':
                 monitor.beacon();
                 break;
+            case 'performance':
+                monitor.performance();
+                break;
             case 'clear':
-                localStorage.removeItem(F.key);
+                localStorage.removeItem(F.code);
                 break;
             default:
         }
     }
-    let F = monitor.init({
-        code: 'test',
-        prevent:true, //是否禁止捕获（开发时可设为true）
-        url:'http://localhost:8000/api/beacon'
+    monitor.init({
+        code: 'tests'
     });
-    console.log(monitor);
-    let log = document.getElementById('log');
-    setInterval(function(){
-        log.value = localStorage.getItem(F.key);
-    },1000);
+    //插入外链
+    document.write('<script src="http://www.scscms.com/scs_img/scscms.js"><\/script>');
 </script>
 </body>
 </html>

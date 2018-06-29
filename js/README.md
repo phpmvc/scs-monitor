@@ -1,21 +1,23 @@
-# 前端监控系统<sup>monitor</sup>上报插件V3.0.1
+# 前端监控系统<sup>monitor</sup>上报插件V3.0.2
 
-	新增防劫持功能
+	新增防劫持功能，加入图表展示。
 
 ### 使用方法
 
+在网站中优先引入链接：
 ```
-<script type="text/javascript" src="monitor.js"></script>
+<script type="text/javascript" src="monitorES5.js"></script>
 ```
+基本配置可在 `javaScript` 文件内写好即可。至此前端监控就可自动上报信息。
 
 #### 初始化init
 
+如果中途需要修改配置，可调用 `init` 方法。
 ```
 monitor.init({
     random: location.hostname === 'localhost' ? 0 : 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
     code: 'monitor', // 后台监控项目相应的编码（必配置）。
     url:'http://localhost:8000/api/beacon', //上报接口（必配置）,
-    key:'monitor',//存储localStorage的key。以防与其他脚本重复请适当修改。
     uin: '', // 被监控网站所登录的用户（可选），为方便追踪错误来源。也要警防用户信息泄漏。,
     ignore: [], // 忽略某些关键词错误, 支持String或Regexp
     hostList:[location.host,'qq.com'], //host白名单（非数组表示不过滤）
@@ -25,8 +27,6 @@ monitor.init({
 
 > random指前端的抽样上报。后端同样有日志和性能上报抽样配置。入库的机率等于两者相乘。
 > code标识必须与网站中的`监控项目`中有相应配置，否则后台不保存数据。
-
-***注意：初始化后基本上就可以了，如果你想手动添加日志也是可以的。***
 
 ##### 手动新增日志
 
@@ -64,12 +64,7 @@ Vue.use(monitor);
 
 #### 调用方法：
 
-参考上面方法，把`monitor`替换成`this.$monitor`即可。
+参考上面的方法，同时vue内部可以通过`this.$monitor`访问上报对象。
 
 示范例子请查看`tests`目录。
 
-
-### 升级日志
-1.添加view_time用户停留时间统计 2018-6-25
-2.改写console捕获日志上报 2018-6-25
-3.使用puppeteer辅助获取首屏性能测试数据（计划中...）

@@ -24,6 +24,7 @@ import {storage} from 'utils';
 Vue.use(ElementUI);
 Vue.use(VueRouter);
 
+// 引入前端监控
 //import monitor from '../js/vue_monitor';
 //Vue.use(monitor);
 

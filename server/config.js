@@ -19,7 +19,7 @@ export default {
         host: 'smtp.126.com',
         port: 465,
         auth: {
-            user: '您的邮箱',
+            user: 'guangda1234@126.com',
             pass: '邮箱密码'
         }
     },

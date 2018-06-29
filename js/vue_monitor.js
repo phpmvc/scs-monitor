@@ -3,24 +3,24 @@
 /**
  * 高版本浏览器使用：Chrome39+ Edge Firefox(31) Opera(26) 即必须支持navigator.sendBeacon
  */
-const monitor = (function(W,D) {
+(function(W,D) {
+    W.monitor = {
+        init:function(){},
+        push:function(){},
+        beacon:function(){}
+    }
+    if(!navigator.sendBeacon||!W.performance){
+        return
+    }
     const F = {
-        random: location.hostname === 'localhost' ? 0 : 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
-        code: 'monitor', // 后台监控项目相应的编码（必配置）。
+        random: 1, // 抽样上报[0-1] 1:100%上报,0:关闭上报。
+        code: 'monitor', // 后台监控项目相应的编码（必配置）同时也是存储localStorage的key。
         url:'http://localhost:8000/api/beacon', //上报接口（必配置）,
-        key:'monitor',//存储localStorage的key。以防与其他脚本重复请适当修改。
         uin: '', // 被监控网站所登录的用户（可选），为方便追踪错误来源。也要警防用户信息泄漏。,
         ignore: ['[HMR]','Ignored an update'], // 忽略某些关键词错误, 支持String或Regexp
         hostList:[location.host,'qq.com'], //host白名单（非数组表示不过滤）
-        pathname:['/login','/index.html'],//需要性能测试的页面，必须数组一般只统计首页。
+        pathname:['/','/login','/index.html'],//需要性能测试的页面，必须数组一般只统计首页。
     };
-    if(!navigator.sendBeacon||!W.performance){
-        return W.monitor = {
-            init:function(){return F},
-            push:function(){},
-            beacon:function(){}
-        }
-    }
     const T = {
         log: W.console.log,
         warn: W.console.warn,
@@ -28,19 +28,19 @@ const monitor = (function(W,D) {
         isType(o, type) {
             return Object.prototype.toString.call(o) === '[object ' + (type || 'Object') + ']';
         },
-        checkURL(url){
-            //检查白名单
+        isIllegalURL(url){
+            //检查非法链接
             if(Array.isArray(F.hostList)){
-                let reg = url.toString().match(/https?:\/\/([^\/]+)/i)
-                return reg ? F.hostList.some(v=>reg[1].endsWith(v)) : !0
+                let reg = url.toString().match(/https?:\/\/[^\/]+/i)
+                return reg ? !F.hostList.some(v=>reg[0].endsWith(v)) : !1
             }else{
-                return !0;
+                return !1;
             }
         },
         getStorage(){
             let arr;
             try{
-                arr = JSON.parse(localStorage.getItem(F.key));
+                arr = JSON.parse(localStorage.getItem(F.code));
             }catch (e){}
             return T.isType(arr,'Array') ? arr : [];
         },
@@ -76,7 +76,7 @@ const monitor = (function(W,D) {
             return ignore;
         }
     };
-    W.monitor = {
+    const monitor = {
         //初始化配置
         init(config) {
             if(T.isType(config)){
@@ -90,7 +90,6 @@ const monitor = (function(W,D) {
         },
         //上报性能测试
         performance(){
-            let url = location.pathname;//当前页面地址
             let timing = performance.timing;
             let entries = [];
             performance.getEntries().forEach(function (per) {
@@ -108,7 +107,7 @@ const monitor = (function(W,D) {
                 screen_width:W.screen.width,
                 screen_height:W.screen.height,
                 pixel_ratio:W.devicePixelRatio,
-                url,
+                url:location.pathname,
                 type:performance.navigation.type,
                 redirect_count:performance.navigation.redirectCount,
                 redirect: timing.fetchStart - timing.navigationStart,
@@ -150,7 +149,7 @@ const monitor = (function(W,D) {
                 }
                 arr.push(msg);
             }
-            localStorage.setItem(F.key,JSON.stringify(arr));
+            localStorage.setItem(F.code,JSON.stringify(arr));
         },
         //开始上报
         beacon(msg){
@@ -168,7 +167,8 @@ const monitor = (function(W,D) {
             });
             if(arr.length){
                 //如果全量上报且上报成功，删除缓存
-                navigator.sendBeacon(F.url,JSON.stringify({code:F.code,uin:F.uin,list:arr})) && !isObj && localStorage.removeItem(F.key);
+                !isObj && localStorage.removeItem(F.code)
+                navigator.sendBeacon(F.url,JSON.stringify({code:F.code,uin:F.uin,list:arr}))
             }
         }
     };
@@ -177,7 +177,7 @@ const monitor = (function(W,D) {
     })
     W.addEventListener('beforeunload', function () {
         monitor.beacon();//上报日志
-        let k = F.key+'_Url';
+        let k = F.code+'_Url';
         let u = [];
         let p = location.pathname;//当前页面地址
         let n = F.pathname
@@ -199,20 +199,19 @@ const monitor = (function(W,D) {
         msg = T.isType(msg)? msg.message:msg;
         if(msg === 'Script error.')return;//忽略第三方js链接文件错误
         monitor.push({
-            title: msg,
+            title: 'error: 源自window.onerror事件',
             url: url,
-            info: 'line:' + line + 'col:' + col
+            info: msg + 'line:' + line + 'col:' + col
         });
     }
     //写入缓存
-    localStorage.setItem(F.key+'_Date',new Date().toDateString());
+    localStorage.setItem(F.code+'_Date',new Date().toDateString());
     //重写console
     function handleConsole(t,arg){
         let r = [].slice.call(arg)
-        let i = r.map(v=>T.isType(v)?JSON.stringify(v):v).join(',')
         monitor.push({
-            title: `console.${t}: ${i}`,
-            info: i
+            title: `${t}: 源自console监听`,
+            info: r.map(v=>T.isType(v)?JSON.stringify(v):v).join(',')
         });
         T[t].apply(W.console,r)
     }
@@ -258,12 +257,13 @@ const monitor = (function(W,D) {
     }
     function ajax(e) {
         let r = e.target
+        let E = 'error' === e.type
         if ("readystatechange" === e.type) {
             if (4 === r.readyState) {
                 ajaxPush(r, 200 === r.status ? 'API' : r.status)
             }
-        } else if ('error' === e.type || 'timeout' === e.type) {
-            ajaxPush(r, e.type)
+        } else if (E || 'timeout' === e.type) {
+            ajaxPush(r, E ? 'error' : 'error:timeout')
         }
     }
     let XML = W.XMLHttpRequest;
@@ -296,32 +296,30 @@ const monitor = (function(W,D) {
     const _w = D.write;//备用方法
     const _i = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
     const fun = (d, t, c) => {
-        if(T.isType(d)){
-            if(d.nodeName === 'SCRIPT' && !T.checkURL(d.src)){
-                monitor.push({
-                    title: t + ' '+ d.tagName,
-                    info: d.outerHTML
-                });
-            }
-        }else{
-            //扩展防劫持
+        if(c){
             let str = d.toString();
             let reg = str.match(/<script[^>]+?src=[^<]+?<\/script>/gi);
             if(reg){
                 let arr = [];
                 reg.forEach(s=>{
-                    if(!T.checkURL(s)){
-                        str = str.replace(s,'')
+                    if(T.isIllegalURL(s)){
+                        str = str.replace(s,'') //扩展防劫持
                         arr.push(s);
                     }
                 })
-                monitor.push({
-                    title: t + ' SCRIPT',
-                    info: reg.join()+(arr.length?`已拦截${arr.join(',')}`:'')
+                arr.length && monitor.push({
+                    title: 'script: '+ t,
+                    info: `已拦截：${arr.join(',')}`
                 });
             }
-            t === 'innerHTML' && _i.set.call(c, str)
-            t === 'Document.write' && _w.call(c, str)
+            t === 'innerHTML' ? _i.set.call(c, str) : _w.call(c, str)
+        }else{
+            if(d.nodeName === 'SCRIPT' && T.isIllegalURL(d.src)){
+                monitor.push({
+                    title: 'script: '+ t,
+                    info: `未阻止：${d.outerHTML}`
+                });
+            }
         }
     };
     D.write = D.writeln = str => {
@@ -346,19 +344,20 @@ const monitor = (function(W,D) {
             attributesFilter: ['src']
         });
     }
-    return W.monitor;
+    W.monitor = monitor;
 }(window,document));
 
 export default {
     install(Vue) {
         if (typeof process === 'undefined' || process.browser) {
+            let monitor = window.monitor;
             Vue.config.productionTip = !1;//阻止 vue 在启动时生成生产提示
             Vue.config.warnHandler = (msg, vm, trace)=> {
                 monitor.push({
-                    title: msg,
-                    info:`错误源自：${trace} 错误`
+                    title: `warn:源自：${trace} 警告:${msg}`,
+                    info:msg
                 });
-                console.warn(msg);//todo 暴露出去
+                console.info(msg);
             };
             Vue.config.errorHandler = (err, vm, info)=> {
                 let name = 'root instance';
@@ -367,10 +366,10 @@ export default {
                     name = (name ? 'component <' + name + '>' : 'anonymous component') + (vm._isVue && vm.$options.__file ? ' at ' + vm.$options.__file : '');
                 }
                 monitor.push({
-                    title:`VUE组件：${name} 源自：${info} 错误`,
+                    title:`error:VUE组件：${name} 源自：${info} 错误`,
                     info: err.message ? err.name + ':' + err.message : err
                 });
-                console.error(err);//todo 暴露出去
+                console.info(err);
             };
             Object.defineProperty(Vue.prototype, '$monitor', { value: monitor });
         }

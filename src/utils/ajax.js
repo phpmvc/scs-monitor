@@ -5,7 +5,7 @@ import 'nprogress/nprogress.css';
 import storage from './storage';
 
 // axios 配置
-axios.defaults.timeout = 5000;//请求超时，适当修改
+axios.defaults.timeout = 50000;//请求超时，适当修改
 axios.defaults.baseURL = "/api";
 // http request 拦截器
 axios.interceptors.request.use(config => {

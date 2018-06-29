@@ -1,5 +1,8 @@
 <template>
     <div>
+        <div class="myChart">
+            <div id="main" style="height:300px;width:100%"></div>
+        </div>
         <el-dialog :title="form_data.id ? '编辑项目' : '添加项目'" :visible.sync="dialogVisible" :rules="rules" width="500">
             <el-form ref="perfor" :rules="rules" :model='form_data' label-width="100px">
                 <el-form-item label="编码" prop="code">
@@ -32,7 +35,12 @@
         </el-dialog>
 
         <el-row class="grid-table">
-            <el-button icon="el-icon-plus" type="success" @click="addProject">添加项目</el-button>
+            <el-button icon="el-icon-plus" type="success" style="float:right" @click="addProject">添加项目</el-button>
+            <el-select placeholder="选择项目" @change="ajaxData" clearable v-model="search_data.sort_id">
+                <el-option v-for="(value,key) in sortType" :key="key"
+                           :label="value" :value="key">
+                </el-option>
+            </el-select>
             <el-table stripe border style="width:100%;margin-top:10px" :data="table_data.data">
                 <el-table-column
                     show-overflow-tooltip
@@ -48,12 +56,60 @@
     </div>
 </template>
 <script type="text/javascript">
-    import {ajax,storage} from 'utils';
+    import {ajax,storage,mixin} from 'utils';
     module.exports = {
         name: 'project',
         data() {
             return {
                 dialogVisible:!1,
+                chartObj:null,
+                maxPie:{
+                    name:'左大圆',
+                    type:'pie',
+                    center : ['33%', 150],
+                    radius : [90, 120],
+                    data:[]
+                },
+                minPie:{
+                    name:'左小圆',
+                    type:'pie',
+                    center : ['33%', 150],
+                    radius : 70,
+                    itemStyle : {
+                        normal : {
+                            label : {
+                                position : 'inner',
+                                formatter : function (params) {
+                                    return (params.percent - 0).toFixed(0) + '%'
+                                }
+                            },
+                            labelLine : {
+                                show : false
+                            }
+                        },
+                        emphasis : {
+                            label : {
+                                show : true,
+                                formatter : "{b}\n{d}%"
+                            }
+                        }
+                    },
+                    data:[]
+                },
+                setOption:{
+                    tooltip : {
+                        show: true,
+                        formatter: "{a} <br/>{b} : {c} ({d}%)"
+                    },
+                    toolbox: {
+                        show : true,
+                        feature : {
+                            saveAsImage : {show: true}
+                        }
+                    },
+                    calculable : true,
+                    series : []
+                },
                 form_data: {
                     id: '',
                     sort : 0,
@@ -67,18 +123,20 @@
                 rules:{
                     code: [{type: "string", required: true,message: '请填写4-10个字符的编码', pattern:/^\w{4,10}$/ }],
                     name: { required: true, message: '请填写项目名称',pattern:/(?!=.*['"])/},
-                    domain: { required: true, message: '请正确填写项目域名', pattern:/^(\w+\.?)+$/}
+                    domain: { required: true, message: '请正确填写项目域名+端口', pattern:/^https?:\/\/(\w+\.?)+(:\d+)?/}
                 },
                 multipleSelection:[],
                 table_data: {
                     columns: [
                         {"key": "code", "name": "编码", width: 120},
                         {"key": "name", "name": "项目名称", width: 120},
-                        {"key": "domain", "name": "域名", width: 150},
-                        {"key": "log_odds", "name": "日志率?", width:100,question:'日志采集率：0至0.9'},
-                        {"key": "performance_odds", "name": "性能率?", width:100,question:'性能采集率：0至0.9'},
+                        {"key": "domain", "name": "域名(端口)", width: 150},
+                        {"key": "log_odds", "name": "日志机率?", width:100,question:'日志采集机率：0至0.9'},
+                        {"key": "rc", "name": "日志数", width:150},
+                        {"key": "performance_odds", "name": "性能机率?", width:100,question:'性能采集机率：0至0.9'},
+                        {"key": "fc", "name": "首屏耗时", width:100},
                         {"key": "comment", "name": "说明", minWidth:120},
-                        {"key": "operations", "name": "操作", width: 135}
+                        {"key": "operations", "name": "操作", width: 150}
                     ],
                     data: []
                 }
@@ -127,9 +185,57 @@
                 });
             },
             ajaxData(){
-                ajax.call(this, '/project', {}, (obj, err) => {
+                ajax.call(this, '/project', {code:this.search_data.sort_id}, (obj, err) => {
                     if (!err) {
                         this.table_data.data = obj.data;
+                        //渲染图表
+                        let o = this.setOption;
+                        o.series = [];
+
+                        let leftMax = JSON.parse(JSON.stringify(this.maxPie))
+                        leftMax.name = '日志统计'
+                        leftMax.data = []
+                        let rightMax = JSON.parse(JSON.stringify(this.maxPie))
+                        rightMax.name = '首屏速度'
+                        rightMax.center = ['66%',150]
+                        rightMax.data = []
+                        obj.statistics.forEach(o=>{
+                            obj.data.forEach(v=>{
+                                if(v.code === o.code){
+                                    v.rc = o.rc;
+                                    v.fc = o.fc;
+                                }
+                            })
+                            leftMax.data.push({value:o.rc,name:o.code})
+                            rightMax.data.push({value:o.fc,name:o.code})
+                        },0);
+                        o.series.push(leftMax)
+                        o.series.push(rightMax)
+
+                        let leftMin = JSON.parse(JSON.stringify(this.minPie))
+                        leftMin.name = '日志类型'
+                        const _obj = {
+                            api:0,warn:0,error:0,script:0,other:0
+                        };
+                        obj.reports.forEach(o=>{
+                            _obj[this.getLogType(o.t)] += o.counts;
+                        },0);
+                        leftMin.data = Object.entries(_obj).map(o=>({name:o[0],value:o[1]}))
+                        o.series.push(leftMin)
+
+                        let rightMin = JSON.parse(JSON.stringify(this.minPie))
+                        rightMin.name = '浏览器占比'
+                        rightMin.data = []
+                        obj.performance.forEach(o=>{
+                            rightMin.data.push({value:o.counts,name:o.browser_type})
+                        },0);
+                        rightMin.center = ['66%',150]
+                        o.series.push(rightMin)
+
+                        if(!this.chartObj){
+                            this.chartObj = this.$echarts.init(document.getElementById('main'),'light');
+                        }
+                        this.chartObj.setOption(o);
                     }
                 });
             },
@@ -150,10 +256,11 @@
                 let h = this.$createElement;
                 if(key === 'operations'){
                     return h('div',[
-                        this.createButton(h,row,'edit','编辑'),this.createButton(h,row,'delete','删除')
+                        this.createButton(h,row,'edit','编辑'),
+                        this.createButton(h,row,'delete','删除')
                     ])
                 }else if(key.includes('odds')){
-                    str = str === '0.0' ? '关闭' : str
+                    str = str === '0.0' ? '关闭' : str //this.ranking
                 }
                 return str;
             },
@@ -176,6 +283,7 @@
         },
         mounted() {
             this.ajaxData();
-        }
+        },
+        mixins:[mixin],
     }
 </script>

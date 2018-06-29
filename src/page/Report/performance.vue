@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div id="myChart">
+        <div class="myChart">
             <div id="main" style="height:300px;width:100%"></div>
         </div>
         <el-row class="grid-table">
@@ -299,7 +299,7 @@
     }
 </script>
 <style lang="less">
-    #myChart{
+    .myChart{
         margin-bottom: 10px;
         border:1px solid #cacaca;
         overflow: hidden;

@@ -8,7 +8,7 @@ import common from './common'
 import nodemailer from 'nodemailer'
 
 //公用：发送邮件
-function sendEmail(email, title, body) {
+async function sendEmail(email, title, body) {
     return new Promise((resolve, reject) => {
         const transporter = nodemailer.createTransport(config.emailServer, {
             from: '<' + config.emailServer.auth.user + '>',
@@ -27,15 +27,34 @@ function sendEmail(email, title, body) {
 //从数据库读取上报项目
 async function privateGetProject(){
     const connection = await mysql.createConnection(config.mysqlDB);
-    const [list] = await connection.execute(`SELECT * FROM project order by sort`, []);
+    const [list] = await connection.execute(`select * from project order by sort`, []);
     await connection.end();
     common.project_list = list;
 }
 //项目列表
 async function project(ctx) {
+    let code = ctx.request.body.code
+    let data = common.project_list
+    let where = ''
+    let arr = []
+    if(data.find(o=>o.code===code)){
+        where = 'where code=?'
+        data = data.filter(o=>o.code === code)
+        arr = [code]
+    }
+    const connection = await mysql.createConnection(config.mysqlDB);
+    const [reports] = await connection.execute(`select code,count(id)as counts,left(title,7) as t from reports ${where} GROUP BY t`, arr);
+    const [performance] = await connection.execute(`select browser_type,count(id)as counts from performance ${where} GROUP BY browser_type`, arr);
+    const [statistics] = await connection.execute(`select p.code,r.rc,f.fc from project p left join (select code,count(id) as rc from reports ${where} GROUP BY code) r on r.code = p.code left join (select code,convert(avg(dom_load),decimal(10,2)) as fc from performance ${where} GROUP BY code) f on f.code = p.code`, arr.concat(arr));
+    await connection.end();
     ctx.body = {
         success: true,
-        data:{data:common.project_list}
+        data:{
+            statistics,
+            reports,
+            performance,
+            data
+        }
     };
 }
 //更新项目（保存、修改和删除）
@@ -141,12 +160,12 @@ async function listReport(ctx) {
     }
 }
 //共用保存上报信息
-async function saveReport(column,value,values,code,origin='') {
+async function saveReport(column,value,values,code,referer) {
     //连接数据库前先判断是否合法及抽样
     let row = 0;
     let obj = common.project_list.find(arr => arr.code === code)
     let odds = values === 'performance' ? 'performance_odds' : 'log_odds'
-    if (obj && origin.includes(obj.domain) && obj[odds] > Math.random()) {
+    if (obj && referer.startsWith(obj.domain) && obj[odds] > Math.random()) {
         const connection = await mysql.createConnection(config.mysqlDB)
         if (values === 'performance') {
             const [result] = await connection.execute(`INSERT INTO performance (${column.join(',')}) VALUES (${column.map(() => '?').join(',')})`, value)
@@ -436,7 +455,7 @@ async function listUpFile(ctx) {
     let pageSize = Math.abs(data.pageSize >> 0)||10;
     let page = Math.abs(data.page >> 0)||1;//当前页码
     const connection = await mysql.createConnection(config.mysqlDB);
-    const [rows] = await connection.execute('SELECT SQL_NO_CACHE COUNT(*) as total FROM `upload`', []);
+    const [rows] = await connection.execute('SELECT SQL_NO_CACHE COUNT(*) as total FROM `upload` order by id', []);
     const total = rows[0].total;//总数量
     const pages = Math.ceil(total/pageSize);
     if(page > pages){

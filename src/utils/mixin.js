@@ -6,6 +6,7 @@ module.exports = {
         return {
             showSort: !0,
             userInfo: {},
+            search_data:{sort_id:''},
             sortType: {}
         }
     },
@@ -13,6 +14,20 @@ module.exports = {
         handleSizeChange(val) {
             this.search_data.pageSize = val
             this.ajaxData()
+        },
+        getLogType(t){
+            //API:,warn:,error:,SCRIPT,other
+            let s = 'other'
+            if (t.includes('API:')) {
+                s = 'api'
+            } else if (t.includes('warn:')) {
+                s = 'warn'
+            } else if (t.includes('error:')) {
+                s = 'error'
+            } else if (t.includes('script:')) {
+                s = 'script'
+            }
+            return s
         },
         dealUserInfo(o) {
             if (this.hasOwnProperty('userInfo')) {

@@ -4,12 +4,11 @@ import config from './config.js'
 import api from './api'
 import common from './common'
 import koa_router from 'koa-router'
-import multer from 'koa-multer';
+import multer from 'koa-multer'
 import fs from 'fs'
-import koabody from 'koa-body';
+import koabody from 'koa-body'
 
 const routes = koa_router();
-
 // userType:需要的用户权限  0:游客 1:超级管理员 2:普通管理员 3:VIP用户 4:普通用户
 const urls = {
     'listReport': {},
@@ -55,8 +54,8 @@ const storage = multer.diskStorage({
         cb(null, config.upPath);
     },
     filename: function (req, file, cb) {
-        let fileFormat = (file.originalname).split('.');
-        cb(null,Date.now() + '.' + fileFormat[fileFormat.length - 1]);
+        let path = Date.now() + file.originalname.match(/\.\w+$/)[0];
+        cb(null,path);
     }
 });
 
@@ -151,7 +150,6 @@ routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {
         }
     }
 });
-
 
 //验证权限函数
 async function verify(ctx) {
