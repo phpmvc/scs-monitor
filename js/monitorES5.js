@@ -225,11 +225,11 @@
     //重写console
     function handleConsole(t, arg) {
         var r = [].slice.call(arg);
-        monitor.push({
-            title: t + ': \u6E90\u81EAconsole\u76D1\u542C',
-            info: r.map(function (v) {
-                return T.isType(v) ? JSON.stringify(v) : v;
-            }).join(',')
+        var info = r.map(function (v) {
+            return T.isType(v) ? JSON.stringify(v) : v;
+        }).join(',');
+        !T.isIgnore(info) && monitor.push({
+            title: t + ': \u6E90\u81EAconsole\u76D1\u542C', info: info
         });
         T[t].apply(W.console, r);
     }
@@ -254,9 +254,15 @@
                 var a = document.createElement('a');
                 a.href = e.url;
                 monitor.push({
-                    title: e.ok ? 'API:' + a.pathname + ' fetch \u8BF7\u6C42\u8017\u65F6(\u6BEB\u79D2)' : 'fetch \u8BF7\u6C42\u51FA\u9519' + a.pathname + ',\u9519\u8BEF\u7801 ' + e.status,
+                    title: e.ok ? 'API:fetch:' + a.pathname : 'error:fetch \u8BF7\u6C42\u51FA\u9519' + a.pathname + ',\u9519\u8BEF\u7801 ' + e.status,
                     url: e.url,
-                    info: e.ok ? i : '\u8BF7\u6C42\u9519\u8BEF\uFF1A' + e.statusText + ' \u65B9\u5F0F\uFF1A' + r[0].method + ' \u8017\u65F6\uFF1A' + i
+                    info: e.ok ? i : '\u8BF7\u6C42\u9519\u8BEF\uFF1A' + e.statusText + ' \u8BF7\u65B9\u5F0F\uFF1A' + (r[1] ? r[1].method || 'get' : 'get') + ' \u8017\u65F6\uFF1A' + i
+                });
+            }).catch(function (err) {
+                monitor.push({
+                    title: 'error:fetch:' + r[0],
+                    url: r[0],
+                    info: err
                 });
             });
             return n;

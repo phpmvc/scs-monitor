@@ -209,9 +209,9 @@
     //重写console
     function handleConsole(t,arg){
         let r = [].slice.call(arg)
-        monitor.push({
-            title: `${t}: 源自console监听`,
-            info: r.map(v=>T.isType(v)?JSON.stringify(v):v).join(',')
+        let info = r.map(v=>T.isType(v)?JSON.stringify(v):v).join(',');
+        !T.isIgnore(info) && monitor.push({
+            title: `${t}: 源自console监听`,info
         });
         T[t].apply(W.console,r)
     }
@@ -231,14 +231,20 @@
             let r = [].slice.call(arguments)
             let t = T.getTime()
             let n = q.apply(W, r)
-            n.then(function(e) {
+            n.then(e=> {
                 let i = T.getTime(t)
                 let a = document.createElement('a')
                 a.href = e.url
                 monitor.push({
-                    title: e.ok?`API:${a.pathname} fetch 请求耗时(毫秒)`:`fetch 请求出错${a.pathname},错误码 ${e.status}`,
+                    title: e.ok ? `API:fetch:${a.pathname}`:`error:fetch 请求出错${a.pathname},错误码 ${e.status}`,
                     url: e.url,
-                    info: e.ok?i:`请求错误：${e.statusText} 方式：${r[0].method} 耗时：${i}`
+                    info: e.ok ? i:`请求错误：${e.statusText} 请方式：${r[1] ? r[1].method || 'get' : 'get'} 耗时：${i}`
+                })
+            }).catch(err=>{
+                monitor.push({
+                    title:`error:fetch:${r[0]}`,
+                    url: r[0],
+                    info: err
                 })
             })
             return n

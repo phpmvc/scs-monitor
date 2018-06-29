@@ -31,7 +31,7 @@
                             <el-form-item label="上报IP："><span>{{ props.row.ip }}</span></el-form-item>
                             <el-form-item label="入库时间："><span>{{ props.row.create_time }}</span></el-form-item>
                             <el-form-item label="上报来路："><span>{{ props.row.referrer }}</span></el-form-item>
-                            <el-form-item label="错误来源："><span>{{ props.row.url }}</span></el-form-item>
+                            <el-form-item label="日志来源："><span>{{ props.row.url }}</span></el-form-item>
                             <el-form-item label="浏览器："><span>{{ props.row.browser }}</span></el-form-item>
                         </el-form>
                     </template>

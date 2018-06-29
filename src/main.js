@@ -25,8 +25,8 @@ Vue.use(ElementUI);
 Vue.use(VueRouter);
 
 // 引入前端监控
-//import monitor from '../js/vue_monitor';
-//Vue.use(monitor);
+import monitor from '../js/vue_monitor';
+Vue.use(monitor);
 
 import routes from './routes';
 
