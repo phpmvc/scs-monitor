@@ -74,10 +74,6 @@ module.exports = function (url,data,fn) {
                     'message': err,
                     'type': 'error'
                 });
-                if (err.includes("token")) {
-                    this.$router.push({'path': '/login', 'query': {'login': 'error','url':this.$route.fullPath}});
-                    return;//如果是因没登录问题直接跳转到登录
-                }
             }
             if(!err && typeof res.data.data !== 'object'){
                 console.warn("返回对象不能为空！");

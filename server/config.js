@@ -11,7 +11,7 @@ export default {
     //token 配置
     JWTs : {
         secret : 'scscms', // 指定密钥
-        expiresIn:'1d'  //超时设置 m分钟 h小时 d天数
+        expiresIn:'2h'  //超时设置 m分钟 h小时 d天数
     },
     //邮件服务配置
     emailServer:{

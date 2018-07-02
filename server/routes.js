@@ -188,10 +188,11 @@ async function verify(ctx) {
 }
 
 //定时器 自动首屏测试
-schedule.scheduleJob({hour: 11, minute: 19,second: 10}, function(){
-    common.project_list.forEach(async obj=>{
-        await api.sendPuppeteer(obj.domain)
-    })
+schedule.scheduleJob({hour: 23, minute: 23,second: 23}, async()=>{
+    let arr = common.project_list;
+    for(let i = arr.length;i--;){
+        await api.sendPuppeteer(arr[i].domain)
+    }
 });
 export default {
     verify,

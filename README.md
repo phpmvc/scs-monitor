@@ -40,7 +40,7 @@ INSERT INTO user (user_name,pass_word,user_type,user_email) VALUES ('admin','$2a
 
 ```
 
-执行上面sql语句后可插入用户：`admin`  密码：`admin123` 帐户。
+执行上面sql语句后可插入用户：`admin`  密码：`admin123` 帐户(前提是 `config.js JWTs.secret='scscms'`没有修改)。
 
 - 配置服务器及端口
 

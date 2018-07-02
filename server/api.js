@@ -27,8 +27,7 @@ async function sendPuppeteer(url) {
         timeout: 15000, //设置超时时间,
         ignoreHTTPSErrors: true // 如果是访问https页面 此属性会忽略https错误,
     });
-    const context = await browser.createIncognitoBrowserContext();
-    const page = await context.newPage();
+    const page = await browser.newPage();
     const screen = {
         "width": 800,
         "height": 600,
@@ -565,6 +564,7 @@ async function delFile(ctx) {
     }
 }
 privateGetProject();//默认获取一次
+
 export default {
     sendPipe,
     listReport,

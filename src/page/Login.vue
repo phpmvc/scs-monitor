@@ -59,6 +59,11 @@
         },
         mounted(){
             storage.remove('userInfo');
+            setTimeout(()=>{
+                ajax.call(this, '/listReport', this.data, (data, err) => {
+
+                })
+            },5000)
         },
         methods: {
             login() {
