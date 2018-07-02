@@ -136,7 +136,7 @@
                         {"key": "performance_odds", "name": "性能机率?", width:100,question:'性能采集机率：0至0.9'},
                         {"key": "fc", "name": "首屏耗时", width:100},
                         {"key": "comment", "name": "说明", minWidth:120},
-                        {"key": "operations", "name": "操作", width: 150}
+                        {"key": "operations", "name": "操作", width: 210}
                     ],
                     data: []
                 }
@@ -257,6 +257,7 @@
                 if(key === 'operations'){
                     return h('div',[
                         this.createButton(h,row,'edit','编辑'),
+                        this.createButton(h,row,'test','测试'),
                         this.createButton(h,row,'delete','删除')
                     ])
                 }else if(key.includes('odds')){
@@ -275,6 +276,13 @@
                             !err && this.ajaxData();
                         })
                     }).catch(() => {});
+                }else if(code === 'test'){
+                    ajax.call(this, '/sendPipe', {url:row.domain}, (d, err) => {
+                        !err && this.$message({
+                            message: '首屏测试成功！',
+                            type: 'success'
+                        });
+                    })
                 }else if(code === 'edit'){
                     this.dialogVisible = !0;
                     Object.assign(this.form_data,row);

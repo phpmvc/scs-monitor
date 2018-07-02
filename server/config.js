@@ -20,7 +20,7 @@ export default {
         port: 465,
         auth: {
             user: 'guangda1234@126.com',
-            pass: '邮箱密码'
+            pass: '???' //邮箱授权码
         }
     },
     //公用：获取客户端IP

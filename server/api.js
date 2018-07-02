@@ -7,6 +7,60 @@ import jwt from 'jsonwebtoken'
 import common from './common'
 import nodemailer from 'nodemailer'
 
+import puppeteer from 'puppeteer-cn'
+
+async function sendPipe(ctx) {
+    let url = ctx.request.body.url;
+    let err = '链接地址错误！'
+    if(/^https?:\/\/(\w+\.?)+(:\d+)?/i.test(url)){
+        err = await sendPuppeteer(url)
+    }
+    ctx.body = {
+        success: !err,
+        message:err,
+        data:{}
+    }
+}
+//自动首屏测试
+async function sendPuppeteer(url) {
+    const browser = await puppeteer.launch({
+        timeout: 15000, //设置超时时间,
+        ignoreHTTPSErrors: true // 如果是访问https页面 此属性会忽略https错误,
+    });
+    const context = await browser.createIncognitoBrowserContext();
+    const page = await context.newPage();
+    const screen = {
+        "width": 800,
+        "height": 600,
+        "deviceScaleFactor": 1,
+        "isMobile": false,
+        "hasTouch": false,
+        "isLandscape": false
+    }
+    await page.setCacheEnabled(true) //禁用缓存
+    await page.setViewport(screen) //设置屏幕
+    let err = null;
+    await page.goto(url, { waitUntil: 'load' }).then(async ()=>{
+        await page.evaluate(() => {
+            let w = window;
+            w.localStorage.clear() //清空本地存储
+            w.monitor.init({uin:'puppeteer'})
+            w.monitor.performance()
+        })
+        let file = `${url.match(/.+\/([^:?]+)/)[1]}${Date.now()}.png`
+        let path = `${config.upPath}/${file}`
+        await page.screenshot({path});
+        let  states = fs.statSync(path);
+        await saveUpFile([1,file,path,'image/png',states.size,!1,new Date().toLocaleString()]);
+    }).catch(async e=>{
+        err = e.message
+        try{
+            await sendEmail(config.emailServer.auth.user, url+'网站异常', `puppeteer检测到此网站异常，错误信息：${err}`)
+        }catch (e){}
+    })
+    await browser.close();
+    return err;
+}
 //公用：发送邮件
 async function sendEmail(email, title, body) {
     return new Promise((resolve, reject) => {
@@ -20,6 +74,7 @@ async function sendEmail(email, title, body) {
             watchHtml: body,
         }, (error, info) => {
             transporter.close();
+            error && console.log('发邮件错误：',error.message)
             resolve(error ? error.message : '');
         });
     })
@@ -165,7 +220,7 @@ async function saveReport(column,value,values,code,referer) {
     let row = 0;
     let obj = common.project_list.find(arr => arr.code === code)
     let odds = values === 'performance' ? 'performance_odds' : 'log_odds'
-    if (obj && referer.startsWith(obj.domain) && obj[odds] > Math.random()) {
+    if (obj && referer.includes(obj.domain) && obj[odds] > Math.random()) {
         const connection = await mysql.createConnection(config.mysqlDB)
         if (values === 'performance') {
             const [result] = await connection.execute(`INSERT INTO performance (${column.join(',')}) VALUES (${column.map(() => '?').join(',')})`, value)
@@ -511,7 +566,9 @@ async function delFile(ctx) {
 }
 privateGetProject();//默认获取一次
 export default {
+    sendPipe,
     listReport,
+    sendPuppeteer,
     deleteReport,
     project,
     updateProject,

@@ -7,6 +7,7 @@ import koa_router from 'koa-router'
 import multer from 'koa-multer'
 import fs from 'fs'
 import koabody from 'koa-body'
+import schedule from 'node-schedule';
 
 const routes = koa_router();
 // userType:需要的用户权限  0:游客 1:超级管理员 2:普通管理员 3:VIP用户 4:普通用户
@@ -14,6 +15,7 @@ const urls = {
     'listReport': {},
     'deleteReport': {}, //删除上报信息
     'performance': {userType: 0},    //上报性能信息
+    'sendPipe': {userType: 4},    //测试
     'project': {userType: 4},    //项目列表
     'updateProject': {userType: common.page_grade.project},    //更新项目
     'beacon': {userType: 0},    //上报信息
@@ -185,6 +187,12 @@ async function verify(ctx) {
     })
 }
 
+//定时器 自动首屏测试
+schedule.scheduleJob({hour: 11, minute: 19,second: 10}, function(){
+    common.project_list.forEach(async obj=>{
+        await api.sendPuppeteer(obj.domain)
+    })
+});
 export default {
     verify,
     routes
