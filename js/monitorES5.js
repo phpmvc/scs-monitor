@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * 高版本浏览器使用：Chrome39+ Edge Firefox(31) Opera(26) 即必须支持navigator.sendBeacon
  * 注意不能使用严格模式'use strict'否则不能读取arguments
@@ -357,7 +359,7 @@
     if (MutationObserver) {
         var observer = new MutationObserver(function (m) {
             m.forEach(function (n) {
-                n.type === 'childList' ? n.addedNodes.forEach(function (t) {
+                n.type === 'childList' ? Array.from(n.addedNodes).forEach(function (t) {
                     return fun(t, 'append');
                 }) : fun(n.target, 'modify');
             });

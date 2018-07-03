@@ -25,6 +25,7 @@ async function sendPipe(ctx) {
 async function sendPuppeteer(url) {
     const browser = await puppeteer.launch({
         timeout: 15000, //设置超时时间,
+        headless:false,
         ignoreHTTPSErrors: true // 如果是访问https页面 此属性会忽略https错误,
     });
     const page = await browser.newPage();
@@ -39,7 +40,21 @@ async function sendPuppeteer(url) {
     await page.setCacheEnabled(true) //禁用缓存
     await page.setViewport(screen) //设置屏幕
     let err = null;
-    await page.goto(url, { waitUntil: 'load' }).then(async ()=>{
+    await page.goto(url, { waitUntil: 'load' }).catch(e=>{
+        err = e.message
+    })
+    if(err){
+        try{
+            await sendEmail(config.emailServer.auth.user, url+'网站异常', `puppeteer检测到此网站异常，错误信息：${err}`)
+        }catch (e){}
+    }else{
+        //检查上传目录
+        let path = ''
+        config.upPath.split('/').forEach(p=>{
+            if (p && !fs.existsSync(path += p+'/')) {
+                fs.mkdirSync(path);
+            }
+        })
         await page.evaluate(() => {
             let w = window;
             w.localStorage.clear() //清空本地存储
@@ -47,16 +62,10 @@ async function sendPuppeteer(url) {
             w.monitor.performance()
         })
         let file = `${url.match(/.+\/([^:?]+)/)[1]}${Date.now()}.png`
-        let path = `${config.upPath}/${file}`
+        path = `${config.upPath}/${file}`
         await page.screenshot({path});
-        let  states = fs.statSync(path);
-        await saveUpFile([1,file,path,'image/png',states.size,!1,new Date().toLocaleString()]);
-    }).catch(async e=>{
-        err = e.message
-        try{
-            await sendEmail(config.emailServer.auth.user, url+'网站异常', `puppeteer检测到此网站异常，错误信息：${err}`)
-        }catch (e){}
-    })
+        await saveUpFile([1,file,path,'image/png',fs.statSync(path).size,!1,new Date().toLocaleString()]);
+    }
     await browser.close();
     return err;
 }

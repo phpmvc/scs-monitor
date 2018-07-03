@@ -339,7 +339,7 @@
     if (MutationObserver) {
         const observer = new MutationObserver(m => {
             m.forEach(n => {
-                n.type === 'childList' ? n.addedNodes.forEach(t => fun(t, 'append')) : fun(n.target, 'modify')
+                n.type === 'childList' ? Array.from(n.addedNodes).forEach(t => fun(t, 'append')) : fun(n.target, 'modify')
             });
         });
         observer.observe(D, {
