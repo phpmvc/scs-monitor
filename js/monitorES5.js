@@ -51,32 +51,38 @@
             return t ? performance.now() - t >> 0 : performance.now();
         },
         isIgnore: function isIgnore(msg) {
-            //必须有title和info属性,然后才抽样
-            var ignore = msg.title && msg.info ? F.random <= Math.random() : !0;
-            if (!ignore) {
+            var ignore = T.isType(msg) && msg.title && msg.info;
+            if (ignore) {
                 //处理一下数据
                 msg.title = msg.title.substring(0, 50);
                 msg.url = (msg.url || W.location.href).substring(0, 200);
-                if (msg.url.endsWith('.hot-update.json')) {
-                    ignore = !0; //忽略webpack热更新文件
-                }
                 msg.occurrence = Date.now();
                 msg.amount = 1;
-                if (!Number.isInteger(msg.info) || !msg.title.startsWith('API:')) {
-                    msg.title = msg.title.replace(/API:/g, ''); //过滤非法字符
-                    msg.info = msg.info.toString().substring(0, 200);
+                if (msg.title.startsWith('pv:')) {
+                    return !1; //pv不参与抽样
                 }
-                if (T.isType(F.ignore, 'Array')) {
-                    for (var i = F.ignore.length; i--;) {
-                        var _s = F.ignore[i];
-                        if (T.isType(_s, 'RegExp') && _s.test(msg.title) || T.isType(_s, 'String') && msg.title.includes(_s)) {
-                            ignore = !0;
-                            break;
+                if (msg.url.endsWith('.hot-update.json')) {
+                    return !0; //忽略webpack热更新文件
+                }
+                ignore = F.random <= Math.random();
+                if (!ignore) {
+                    if (!Number.isInteger(msg.info) || !msg.title.startsWith('API:')) {
+                        msg.title = msg.title.replace(/API:/g, ''); //过滤非法字符
+                        msg.info = msg.info.toString().substring(0, 200);
+                    }
+                    if (T.isType(F.ignore, 'Array')) {
+                        for (var i = F.ignore.length; i--;) {
+                            var _s = F.ignore[i];
+                            if (T.isType(_s, 'RegExp') && _s.test(msg.title) || T.isType(_s, 'String') && msg.title.includes(_s)) {
+                                ignore = !0;
+                                break;
+                            }
                         }
                     }
                 }
+                return ignore;
             }
-            return ignore;
+            return !0;
         }
     };
     var monitor = {
@@ -143,14 +149,15 @@
         //先缓存不上报
         push: function push(msg) {
             if (!T.isType(msg) || T.isIgnore(msg)) {
-                return; //没有阻止，参数必须是对象,同时在抽样范围内
+                return; //阻止!参数必须是对象,同时在抽样范围内
             }
             var arr = T.getStorage();
             var has = false; //判断缓存中是否有相同的错误，有就累加1，没就存入缓存
+            var t = msg.title;
             for (var i = arr.length; i--;) {
-                if (arr[i].title === msg.title) {
+                if (arr[i].title === t) {
                     has = !0;
-                    if (msg.title.startsWith('API:')) {
+                    if (t.startsWith('API:') || t.startsWith('pv:')) {
                         arr[i].info.push(msg.info);
                     } else {
                         arr[i].amount++;
@@ -159,7 +166,7 @@
                 }
             }
             if (!has) {
-                if (msg.title.startsWith('API:')) {
+                if (t.startsWith('API:') || t.startsWith('pv:')) {
                     msg.info = [msg.info];
                 }
                 arr.push(msg);
@@ -176,10 +183,14 @@
                 arr = [msg];
             }
             arr.forEach(function (o) {
-                if (o.title.startsWith('API:')) {
+                var t = o.title;
+                if (t.startsWith('API:')) {
                     o.amount = o.info.reduce(function (a, v) {
                         return a + v;
                     }, 0) / o.info.length >> 0; //求平均值
+                    o.info = o.info.join();
+                } else if (t.startsWith('pv:')) {
+                    o.amount = o.info.length;
                     o.info = o.info.join();
                 }
             });
@@ -192,6 +203,13 @@
     };
     W.addEventListener('load', function () {
         T.timeIn = Date.now(); //用于统计用户停留时间
+        //统计pv
+        var l = location;
+        monitor.push({
+            title: 'pv: ' + (l.pathname + l.search + l.hash),
+            info: D.referrer
+        });
+        T.log("load");
     });
     W.addEventListener('beforeunload', function () {
         monitor.beacon(); //上报日志
@@ -221,6 +239,7 @@
             url: url,
             info: msg + 'line:' + line + 'col:' + col
         });
+        T.error(msg);
     };
     //写入缓存
     localStorage.setItem(F.code + '_Date', new Date().toDateString());
@@ -230,8 +249,8 @@
         var info = r.map(function (v) {
             return T.isType(v) ? JSON.stringify(v) : v;
         }).join(',');
-        !T.isIgnore(info) && monitor.push({
-            title: t + ': \u6E90\u81EAconsole\u76D1\u542C', info: info
+        monitor.push({
+            title: t + ': \u6E90\u81EAconsole\u76D1\u542C:' + info.substring(0, 20), info: info
         });
         T[t].apply(W.console, r);
     }

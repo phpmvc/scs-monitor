@@ -97,6 +97,7 @@
                     warn:'warning',
                     error:'error',
                     script:'star-on',
+                    view:'view',
                     other:'question'
                 }
             }
@@ -230,6 +231,7 @@
         .el-table__row{
             .el-icon-info{color:#909399}
             .el-icon-warning{color:#E6A23C}
+            .el-icon-view{color:#78f5b3}
             .el-icon-error{color:#F56C6C}
             .el-icon-star-on{color:red}
         }

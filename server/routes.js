@@ -123,7 +123,7 @@ routes.post('/performance', koabody(), async (ctx) => {
     }
     const arr = ['code', 'uin', 'screen_width', 'screen_height', 'pixel_ratio', 'url', 'type', 'redirect_count', 'redirect', 'dns_lookup', 'tcp_connect', 'request', 'response', 'first_paint', 'dom_complete', 'dom_ready', 'dom_load','view_time', 'timing', 'entries']
     const values = []
-    let _arr = arr.splice(7,18)
+    let _arr = arr.splice(13,5)
     arr.forEach(k=>{
         let _t = json[k]||0
         values.push(_arr.includes(k) ? (_t > 1e9 ? 1e9 : _t) : _t)
@@ -139,7 +139,6 @@ routes.post('/performance', koabody(), async (ctx) => {
 routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {
     const {originalname,mimetype,filename,path,size} = ctx.req.file;
     let msg,is_del = 0;
-    let fullPath = common.web_domain + config.upPath.replace('dist/','/') + filename;
     if(size > common.upFile_maxSize || !common.upFile_accept.test(mimetype)) {
         msg = size > common.upFile_maxSize?'上传文件大小超出':'非法上传文件格式';
         is_del = 1;
@@ -150,7 +149,7 @@ routes.post('/upFile', multer({storage}).single('file'), async (ctx) => {
         success: !msg,
         message:msg,
         data: {
-            filename: fullPath
+            filename: config.upPath.replace('dist/','/') + filename
         }
     }
 });
@@ -190,7 +189,7 @@ async function verify(ctx) {
 }
 
 //定时器 自动首屏测试
-schedule.scheduleJob({hour: 10, minute: 49,second: 23}, async()=>{
+schedule.scheduleJob({hour: 23, minute: 23,second: 23}, async()=>{
     let arr = common.project_list;
     for(let i = arr.length;i--;){
         await api.sendPuppeteer(arr[i].domain)

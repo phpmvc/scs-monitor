@@ -24,6 +24,8 @@ module.exports = {
                 s = 'warn'
             } else if (t.includes('error:')) {
                 s = 'error'
+            } else if (t.includes('pv:')) {
+                s = 'view'
             } else if (t.includes('script:')) {
                 s = 'script'
             }

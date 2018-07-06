@@ -1,8 +1,11 @@
 <template>
     <div>
-        <div class="myChart">
-            <div id="main" style="height:300px;width:100%"></div>
-        </div>
+        <ul class="myChart">
+            <li><canvas ref="chart1"></canvas></li>
+            <li><canvas ref="chart2"></canvas></li>
+            <li><canvas ref="chart3"></canvas></li>
+            <li><canvas ref="chart4"></canvas></li>
+        </ul>
         <el-dialog :title="form_data.id ? '编辑项目' : '添加项目'" :visible.sync="dialogVisible" :rules="rules" width="500">
             <el-form ref="perfor" :rules="rules" :model='form_data' label-width="100px">
                 <el-form-item label="编码" prop="code">
@@ -62,53 +65,25 @@
         data() {
             return {
                 dialogVisible:!1,
-                chartObj:null,
-                maxPie:{
-                    name:'左大圆',
-                    type:'pie',
-                    center : ['33%', 150],
-                    radius : [90, 120],
-                    data:[]
-                },
-                minPie:{
-                    name:'左小圆',
-                    type:'pie',
-                    center : ['33%', 150],
-                    radius : 70,
-                    itemStyle : {
-                        normal : {
-                            label : {
-                                position : 'inner',
-                                formatter : function (params) {
-                                    return (params.percent - 0).toFixed(0) + '%'
-                                }
-                            },
-                            labelLine : {
-                                show : false
-                            }
+                chartObj:{},
+                doughnut:{
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [],
+                            backgroundColor: ['#4dc9f6','#f67019','#f53794','#537bc4','#acc236','#166a8f','#00a950','#58595b','#8549ba']
+                        }],
+                        labels: []
+                    },
+                    options: {
+                        legend: {
+                            display: false,
                         },
-                        emphasis : {
-                            label : {
-                                show : true,
-                                formatter : "{b}\n{d}%"
-                            }
+                        title: {
+                            display: true,
+                            text: 'title'
                         }
-                    },
-                    data:[]
-                },
-                setOption:{
-                    tooltip : {
-                        show: true,
-                        formatter: "{a} <br/>{b} : {c} ({d}%)"
-                    },
-                    toolbox: {
-                        show : true,
-                        feature : {
-                            saveAsImage : {show: true}
-                        }
-                    },
-                    calculable : true,
-                    series : []
+                    }
                 },
                 form_data: {
                     id: '',
@@ -188,54 +163,35 @@
                 ajax.call(this, '/project', {code:this.search_data.sort_id}, (obj, err) => {
                     if (!err) {
                         this.table_data.data = obj.data;
-                        //渲染图表
-                        let o = this.setOption;
-                        o.series = [];
-
-                        let leftMax = JSON.parse(JSON.stringify(this.maxPie))
-                        leftMax.name = '日志统计'
-                        leftMax.data = []
-                        let rightMax = JSON.parse(JSON.stringify(this.maxPie))
-                        rightMax.name = '首屏速度'
-                        rightMax.center = ['66%',150]
-                        rightMax.data = []
+                        const Obj = this.chartObj;
+                        for(let i = 5;--i;){
+                            Obj['data' + i].options.title.text = ['日志统计','首屏速度','日志类型','日志类型'][i-1];
+                            Obj['data' + i].data.datasets[0].data = []
+                            Obj['data' + i].data.labels = []
+                        }
                         obj.statistics.forEach(o=>{
-                            obj.data.forEach(v=>{
-                                if(v.code === o.code){
-                                    v.rc = o.rc;
-                                    v.fc = o.fc;
-                                }
-                            })
-                            leftMax.data.push({value:o.rc,name:o.code})
-                            rightMax.data.push({value:o.fc,name:o.code})
+                            Obj.data1.data.datasets[0].data.push(o.rc||0);
+                            Obj.data2.data.datasets[0].data.push(o.fc||0);
+                            Obj.data1.data.labels.push(o.code);
+                            Obj.data2.data.labels.push(o.code);
                         },0);
-                        o.series.push(leftMax)
-                        o.series.push(rightMax)
-
-                        let leftMin = JSON.parse(JSON.stringify(this.minPie))
-                        leftMin.name = '日志类型'
                         const _obj = {
                             api:0,warn:0,error:0,script:0,other:0
                         };
                         obj.reports.forEach(o=>{
                             _obj[this.getLogType(o.t)] += o.counts;
                         },0);
-                        leftMin.data = Object.entries(_obj).map(o=>({name:o[0],value:o[1]}))
-                        o.series.push(leftMin)
-
-                        let rightMin = JSON.parse(JSON.stringify(this.minPie))
-                        rightMin.name = '浏览器占比'
-                        rightMin.data = []
-                        obj.performance.forEach(o=>{
-                            rightMin.data.push({value:o.counts,name:o.browser_type})
-                        },0);
-                        rightMin.center = ['66%',150]
-                        o.series.push(rightMin)
-
-                        if(!this.chartObj){
-                            this.chartObj = this.$echarts.init(document.getElementById('main'),'light');
+                        for(let k in _obj){
+                            Obj.data3.data.datasets[0].data.push(_obj[k]);
+                            Obj.data3.data.labels.push(k)
                         }
-                        this.chartObj.setOption(o);
+                        obj.performance.forEach(o=>{
+                            Obj.data4.data.datasets[0].data.push(o.counts);
+                            Obj.data4.data.labels.push(o.browser_type)
+                        })
+                        for(let i = 5;--i;){
+                            Obj['chart'+i].update()
+                        }
                     }
                 });
             },
@@ -291,6 +247,11 @@
         },
         mounted() {
             this.ajaxData();
+            const Obj = this.chartObj;
+            for(let i = 5;--i;){
+                Obj['data'+i] = JSON.parse(JSON.stringify(this.doughnut))
+                Obj['chart'+i] = new this.$chart(this.$refs['chart'+i].getContext('2d'),Obj['data'+i])
+            }
         },
         mixins:[mixin],
     }

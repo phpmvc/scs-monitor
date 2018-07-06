@@ -8,14 +8,8 @@ import VueRouter from 'vue-router';
 import Vuex from 'vuex';
 
 // 引入 ECharts 主模块
-const echarts = require('echarts/lib/echarts');
-// 按需引入可减少0.4MB
-require('echarts/lib/chart/pie');
-require('echarts/lib/chart/line');
-// 引入提示框和标题组件
-require('echarts/lib/component/tooltip');
-require('echarts/lib/component/title');
-Vue.prototype.$echarts = echarts
+const chart = require('chart.js');
+Vue.prototype.$chart = chart
 
 Vue.use(Vuex);
 import store from './store/index';//本地存储
@@ -25,8 +19,8 @@ Vue.use(ElementUI);
 Vue.use(VueRouter);
 
 // 引入前端监控
-import monitor from '../js/vue_monitor';
-Vue.use(monitor);
+//import monitor from '../js/vue_monitor';
+//Vue.use(monitor);
 
 import routes from './routes';
 

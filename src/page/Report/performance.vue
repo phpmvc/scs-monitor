@@ -1,7 +1,7 @@
 <template>
     <div>
         <div class="myChart">
-            <div id="main" style="height:300px;width:100%"></div>
+            <canvas ref="chart"></canvas>
         </div>
         <el-row class="grid-table">
             <el-form :inline="true" :model='search_data'>
@@ -30,7 +30,7 @@
                 <el-table-column type="expand">
                     <template slot-scope="props">
                         <keep-alive>
-                        <div class="chart" :id="'chart'+props.row.id"></div>
+                        <div class="chart" :id="'chart'+props.row.id"><canvas></canvas></div>
                         </keep-alive>
                         <el-form label-position="left" inline class="table-expand">
                             <el-form-item label="用户："><span>{{ props.row.uin }}</span></el-form-item>
@@ -82,40 +82,32 @@
                     deleteReport: !0,
                 },
                 chartObj:null,
-                setOption:{
-                    title:{
-                        text:'首屏加载统计'
+                options:{
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: []
                     },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: {
-                            type: 'cross',
-                            label: {
-                                backgroundColor: '#6a7985'
-                            }
-                        }
-                    },
-                    toolbox:{
-                        feature:{
-                            saveAsImage:{}
-                        }
-                    },
-                    grid: {left: '3%',right: '3%',bottom: '3%',containLabel: true},
-                    yAxis:  [{type: 'value'}],
-                    legend: {
-                        selected: {
-                            '加载耗时': !0,'重定向耗时': !1,'CDN耗时': !1,'TCP耗时': !1,'请求耗时': !1,'响应耗时': !1,'白屏时间': !0,'渲染耗时': !0, '准备耗时': !0
+                    options: {
+                        aspectRatio:4,
+                        responsive: true,
+                        title: {
+                            display: true,
+                            text: '首屏性能测试'
                         },
-                        data: ['重定向耗时', 'CDN耗时','TCP耗时','请求耗时','响应耗时','白屏时间','渲染耗时','准备耗时','加载耗时']
-                    },
-                    xAxis : [
-                        {
-                            type : 'category',
-                            boundaryGap : false,
-                            data : []
+                        tooltips: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        scales: {
+                            xAxes: [{
+                                stacked: true,
+                            }],
+                            yAxes: [{
+                                stacked: true
+                            }]
                         }
-                    ],
-                    series: []
+                    }
                 },
                 dateRange:'',
                 search_data: {
@@ -206,25 +198,45 @@
                         this.table_data.total = obj.total;
                         this.search_data.page = obj.page;
                         //渲染图表
-                        let o = this.setOption;
+                        let o = this.options;
+                        let w = window.innerWidth;
+                        o.options.aspectRatio = w > 1400 ? 4 : w > 1000 ? 3 : 2;
                         const arr = ['redirect','dns_lookup','tcp_connect','request','response','first_paint','dom_complete','dom_ready','dom_load']
-                        obj.data.forEach((row,i)=>{
-                            row.enter = this.entryMode[row.type]
-                            o.series.forEach((obj,l)=>{
-                                if(i === 0){
-                                    o.xAxis[0].data = []
-                                    obj.data = [] //初始化清空
-                                }
-                                obj.data.push(row[arr[l]])
+                        o.data.datasets = [];
+                        o.data.labels = [];
+                        arr.forEach((k,i)=>{
+                            o.data.datasets.push({
+                                label:k,
+                                backgroundColor:this.randomColor(i),
+                                borderColor:this.randomColor(i+1),
+                                fill:false,
+                                data:[]
                             })
-                            o.xAxis[0].data.push(i+1+this.sortType[row.code]);
                         })
-                        if(!this.chartObj){
-                            this.chartObj = this.$echarts.init(document.getElementById('main'),'light');
-                        }
-                        this.chartObj.setOption(o);
+                        obj.data.forEach((row,i)=>{
+                            o.data.labels.push(i+1)
+                            row.enter = this.entryMode[row.type]
+                            o.data.datasets.forEach(obj=>{
+                                obj.data.push(row[obj.label])
+                            })
+                        })
+                        this.chartObj.update();
                     }
                 });
+            },
+            randomColor(index){
+                const color = [
+                    '#FF6600',
+                    '#FFCC33',
+                    '#99CC33',
+                    '#33CC99',
+                    '#FFFF00',
+                    '#99CC33',
+                    '#009966',
+                    '#0099CC',
+                    '#FF9900'].reverse()
+                index = index >= color.length ? Math.random() * color.length : index
+                return color[index >> 0]
             },
             //点击查询
             onSearch() {
@@ -237,59 +249,40 @@
                 }
             },
             createChart(row,dom){
-                let chart = this.$echarts.init(dom,'light');
-                let data = []
-                JSON.parse(row.entries).forEach(o => {
+                let config = {
+                    type: 'pie',
+                    data: {
+                        datasets: [{
+                            data: [],
+                            backgroundColor: []
+                        }],
+                        labels: []
+                    },
+                    options: {
+                        legend:{display:false}
+                    }
+                }
+                JSON.parse(row.entries).forEach((o,i) => {
                     let d = o.duration
                     if (d) {
                         let k = /.+\/([^?#]+)/.exec(o.url)
                         k = k ? k[1] : o.type
-                        data.push({value:d,name:k})
+                        config.data.datasets[0].data.push(d)
+                        config.data.datasets[0].backgroundColor.push(this.randomColor(i))
+                        config.data.labels.push(k)
                     }
                 })
-                chart.setOption({
-                    tooltip : {
-                        trigger: 'item',
-                        formatter: "{a} <br/>{b} : {c} ({d}%)"
-                    },
-                    series : [
-                        {
-                            name: '资源耗时',
-                            type: 'pie',
-                            radius : '80%',
-                            center: ['50%', '50%'],
-                            data,
-                            itemStyle: {
-                                emphasis: {
-                                    shadowBlur: 10,
-                                    shadowOffsetX: 0,
-                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
-                                }
-                            }
-                        }
-                    ]
-                });
+                new this.$chart(dom.getContext('2d'),config)
             },
             expandChange(row) {
                 this.$nextTick(()=>{
-                    let dom = document.getElementById('chart'+row.id)
+                    let dom = document.querySelector(`#chart${row.id} canvas`)
                     dom && this.createChart(row,dom);
                 })
             },
         },
         mounted() {
-            let o = this.setOption;
-            o.legend.data.forEach((v,i)=>{
-                o.series.push({
-                    name: v,
-                    type: 'line',
-                    stack: '耗时',
-                    areaStyle: {
-                        normal: {}
-                    },
-                    data: []
-                })
-            })
+            this.chartObj = new this.$chart(this.$refs.chart.getContext('2d'),this.options)
             this.ajaxData();
         },
         mixins:[mixin],
@@ -300,13 +293,20 @@
         margin-bottom: 10px;
         border:1px solid #cacaca;
         overflow: hidden;
+        display: flex;
+        width:100%;
+        text-align: center;
+        li{
+            flex:1;
+            width:25%
+        }
     }
     .chart{
         position: absolute;
-        top:0;
-        left:900px;
+        z-index: 4;
+        top:20px;
+        left:800px;
         width:300px;
-        height:200px;
     }
     .grid-table .el-table__expanded-cell{
         span{color:#a8b3c3}

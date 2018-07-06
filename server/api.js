@@ -62,9 +62,9 @@ async function sendPuppeteer(url) {
             w.monitor.performance()
         })
         let file = `${url.match(/.+\/([^:?]+)/)[1]}${Date.now()}.png`
-        path = `${config.upPath}/${file}`
+        path = `${config.upPath}${file}`
         await page.screenshot({path});
-        await saveUpFile([1,file,path,'image/png',fs.statSync(path).size,!1,new Date().toLocaleString()]);
+        await saveUpFile([1,file,path.replace('dist/','/'),'image/png',fs.statSync(path).size,!1,new Date().toLocaleString()]);
     }
     await browser.close();
     return err;

@@ -15,7 +15,7 @@
     "axios": "^0.15.3",
     "babel-polyfill": "^6.23.0",
     "bcryptjs": "^2.4.0",
-    "echarts": "^4.1.0",
+    "chart.js": "^2.7.2",
     "element-ui": "^2.4.1",
     "koa": "^2.3.0",
     "koa-body": "^2.5.0",
