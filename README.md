@@ -55,6 +55,12 @@ npm run start  #开发期，运行前后端
 
 至此前端监控后台搭建起来了，等着各系统上报数据...
 
+### 常见问题
+
+- Error: Cannot find mondule 'puppeteer'
+
+如果出现以上错误，请重新安装插件 `npm install puppeteer-cn -D`
+
 ### 邮箱配置
 为了能正常使用邮箱汇报网站异常，请在 `server/config.js` 里配置好邮箱。
 

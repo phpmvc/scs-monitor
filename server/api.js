@@ -38,6 +38,7 @@ async function sendPuppeteer(url) {
         "isLandscape": false
     }
     await page.setCacheEnabled(true) //禁用缓存
+    //await page.waitForNavigation();
     await page.setViewport(screen) //设置屏幕
     let err = null;
     await page.goto(url, { waitUntil: 'load' }).catch(e=>{

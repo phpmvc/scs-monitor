@@ -123,10 +123,13 @@ routes.post('/performance', koabody(), async (ctx) => {
     }
     const arr = ['code', 'uin', 'screen_width', 'screen_height', 'pixel_ratio', 'url', 'type', 'redirect_count', 'redirect', 'dns_lookup', 'tcp_connect', 'request', 'response', 'first_paint', 'dom_complete', 'dom_ready', 'dom_load','view_time', 'timing', 'entries']
     const values = []
-    let _arr = arr.splice(13,5)
+    let _arr = arr.slice(13,18)
     arr.forEach(k=>{
         let _t = json[k]||0
-        values.push(_arr.includes(k) ? (_t > 1e9 ? 1e9 : _t) : _t)
+        if(_arr.includes(k)){
+            _t = _t > 1e9 ? 1e9 : _t < 0 ? 0 : _t
+        }
+        values.push(_t)
     })
     arr.push('browser');  values.push(browser);
     arr.push('browser_type');  values.push(bt);

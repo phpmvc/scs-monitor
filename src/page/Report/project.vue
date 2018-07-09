@@ -172,6 +172,12 @@
                         obj.statistics.forEach(o=>{
                             Obj.data1.data.datasets[0].data.push(o.rc||0);
                             Obj.data2.data.datasets[0].data.push(o.fc||0);
+                            obj.data.forEach(b=>{
+                                if(b.code === o.code){
+                                    b.rc = o.rc
+                                    b.fc = o.fc
+                                }
+                            })
                             Obj.data1.data.labels.push(o.code);
                             Obj.data2.data.labels.push(o.code);
                         },0);
